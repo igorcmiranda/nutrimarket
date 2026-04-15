@@ -1,0 +1,16 @@
+# Xcode
+.DS_Store
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xcworkspace/xcuserdata/
+
+# Secrets — NUNCA subir isso
+NutriMarket/Secrets.swift
+NutriMarket/GoogleService-Info.plist
+
+# SPM
+.build/
+*.resolved
+NutriMarket/Secrets.swift
+NutriMarket/GoogleService-Info.plist
