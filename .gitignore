@@ -1,16 +1,17 @@
-# Xcode
+# macOS
 .DS_Store
+
+# Xcode
 *.xcuserstate
 xcuserdata/
 DerivedData/
 *.xcworkspace/xcuserdata/
 
+# Swift Package Manager
+.build/
+*.resolved
+
 # Secrets — NUNCA subir isso
 NutriMarket/Secrets.swift
 NutriMarket/GoogleService-Info.plist
-
-# SPM
-.build/
-*.resolved
-NutriMarket/Secrets.swift
-NutriMarket/GoogleService-Info.plist
+functions/serviceAccountKey.json
