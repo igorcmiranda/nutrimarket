@@ -17,15 +17,15 @@ struct FeedView: View {
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var locationManager = FeedLocationManager()
-    @StateObject private var feedViewModel = FeedViewModel()
+    @EnvironmentObject var feedViewModel: FeedViewModel
     @State private var showNewPost = false
     @State private var showPaywall = false
     @Binding var showSubscription: Bool
-
+    
     var body: some View {
         ZStack {
             Color(.systemGray6).ignoresSafeArea()
-
+            
             if feedManager.isLoading {
                 loadingView
             } else if feedManager.posts.isEmpty {
@@ -56,7 +56,7 @@ struct FeedView: View {
                                     }
                                 }
                         }
-
+                        
                         if feedManager.isLoadingMore {
                             ProgressView()
                                 .padding()
@@ -73,7 +73,7 @@ struct FeedView: View {
                     updateCurrentlyVisiblePost(scrollOffset: offset)
                 }
             }
-
+            
             // Botão novo post
             VStack {
                 Spacer()
@@ -103,7 +103,7 @@ struct FeedView: View {
                     .padding()
                 }
             }
-
+            
             if feedManager.isUploading {
                 uploadingOverlay
             }
@@ -140,7 +140,7 @@ struct FeedView: View {
             }
         }
     }
-
+    
     var loadingView: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -150,7 +150,7 @@ struct FeedView: View {
             Spacer()
         }
     }
-
+    
     var emptyView: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -164,7 +164,7 @@ struct FeedView: View {
             Spacer()
         }
     }
-
+    
     var uploadingOverlay: some View {
         ZStack {
             Color.black.opacity(0.4).ignoresSafeArea()
@@ -179,6 +179,18 @@ struct FeedView: View {
             .padding(32)
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    // A FUNÇÃO SOLICITADA
+private func updateCurrentlyVisiblePost(scrollOffset: CGFloat) {
+        // Exemplo simples: pega o índice baseado no offset
+        let postHeight: CGFloat = 300 // altura aproximada de cada PostCardView
+        let index = max(0, min(feedManager.posts.count - 1, Int(scrollOffset / postHeight)))
+        
+        if feedManager.posts.indices.contains(index) {
+            let visiblePost = feedManager.posts[index]
+            feedViewModel.currentlyVisiblePost = visiblePost
         }
     }
 }

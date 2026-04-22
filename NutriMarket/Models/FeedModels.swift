@@ -24,6 +24,7 @@ struct Post: Identifiable, Codable, Equatable {
     var isLiked: Bool = false
     var distanceKm: Double? = nil
     var isPinned: Bool = false
+    
 
     enum MediaType: String, Codable {
         case photo, video
@@ -70,3 +71,4 @@ struct Follow: Codable {
     var targetID: String
     var createdAt: Date
 }
+

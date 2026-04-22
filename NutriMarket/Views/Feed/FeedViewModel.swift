@@ -4,6 +4,7 @@ import Combine
 class FeedViewModel: ObservableObject {
     @Published var currentlyPlayingPostID: String? = nil
     @Published var currentlyPlayingVideoIndex: Int? = nil
+    @Published var currentlyVisiblePost: Post? = nil
     
     func setCurrentlyPlaying(postID: String, videoIndex: Int?) {
         currentlyPlayingPostID = postID
