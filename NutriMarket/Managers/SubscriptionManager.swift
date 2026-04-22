@@ -17,7 +17,7 @@ class SubscriptionManager: ObservableObject {
     // Payment Links de TESTE
     let starterURL  = "https://buy.stripe.com/8x2fZjgGcbx457B35FcQU01"
     let standardURL = "https://buy.stripe.com/aFaaEZgGc7gO43x9u3cQU02"
-    let premiumURL  = "https://buy.stripe.com/00w8wRgGcfNkfMfdKjcQU00"
+    let premiumURL  = "https://buy.stripe.com/test_28E9AT4o905z1Dw9JN7ok00"
 
     func loadSubscription() async {
         guard let uid = Auth.auth().currentUser?.uid else { return }

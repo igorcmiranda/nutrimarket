@@ -10,6 +10,7 @@ struct RootView: View {
     @EnvironmentObject var healthKit: HealthKitManager
     @EnvironmentObject var notificationManager: NotificationManager
     @EnvironmentObject var trophyManager: TrophyManager
+    @EnvironmentObject var languageManager: LanguageManager
     @StateObject private var profile = UserProfile()
 
     var body: some View {
@@ -37,6 +38,7 @@ struct RootView: View {
         .onChange(of: authManager.currentUser?.uid) { _, newUID in
             if newUID != nil {
                 Task {
+                    await languageManager.syncLanguageFromFirestoreIfNeeded()
                     // Tudo em paralelo — não espera um terminar para começar o outro
                     async let sub: () = subscriptionManager.loadSubscription()
                     async let usage: () = usageManager.loadCounters()

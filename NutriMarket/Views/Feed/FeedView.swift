@@ -1,11 +1,23 @@
 import SwiftUI
 import CoreLocation
 
+// MARK: - Scroll Offset Preference Key
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// MARK: - FeedView
+
 struct FeedView: View {
     @EnvironmentObject var feedManager: FeedManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var locationManager = FeedLocationManager()
+    @StateObject private var feedViewModel = FeedViewModel()
     @State private var showNewPost = false
     @State private var showPaywall = false
     @Binding var showSubscription: Bool
@@ -25,6 +37,15 @@ struct FeedView: View {
                             PostCardView(post: post, showSubscription: $showSubscription)
                                 .environmentObject(feedManager)
                                 .environmentObject(authManager)
+                                .environmentObject(feedViewModel)
+                                .background(
+                                    GeometryReader { geometry in
+                                        Color.clear.preference(
+                                            key: ScrollOffsetPreferenceKey.self,
+                                            value: geometry.frame(in: .named("scroll")).minY
+                                        )
+                                    }
+                                )
                             Rectangle()
                                 .fill(Color(.systemGray6))
                                 .frame(height: 8)
@@ -42,9 +63,14 @@ struct FeedView: View {
                         }
                     }
                 }
+                .coordinateSpace(name: "scroll")
                 .background(Color(.systemGray6))
                 .refreshable {
                     await feedManager.loadFeed(userLocation: locationManager.lastLocation)
+                }
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
+                    // Atualiza o post atualmente visível baseado na posição de scroll
+                    updateCurrentlyVisiblePost(scrollOffset: offset)
                 }
             }
 

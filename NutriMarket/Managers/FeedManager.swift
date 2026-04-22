@@ -21,6 +21,7 @@ class FeedManager: ObservableObject {
     private let storage = Storage.storage()
     private var postsListener: ListenerRegistration?
     private var userLocation: CLLocation?
+    private let pinnedConfigRef = Firestore.firestore().collection("appConfig").document("feedPinnedPost")
 
     deinit {
         postsListener?.remove()
@@ -105,10 +106,13 @@ class FeedManager: ObservableObject {
         }
 
         let sorted = sortPosts(loaded)
+        let withPinnedFirst = await applyPinnedPostIfNeeded(in: sorted)
         if append {
-            posts.append(contentsOf: sorted)
+            let existingIDs = Set(posts.map(\.id))
+            let unique = withPinnedFirst.filter { !existingIDs.contains($0.id) }
+            posts.append(contentsOf: unique)
         } else {
-            posts = sorted
+            posts = withPinnedFirst
         }
         isLoading = false
     }
@@ -130,11 +134,74 @@ class FeedManager: ObservableObject {
         }
     }
 
-    // MARK: - Upload de post
+    private func applyPinnedPostIfNeeded(in sortedPosts: [Post]) async -> [Post] {
+        guard var pinned = await fetchActivePinnedPost() else {
+            return sortedPosts.map { post in
+                var mutable = post
+                mutable.isPinned = false
+                return mutable
+            }
+        }
+
+        pinned.isPinned = true
+        var reordered = sortedPosts.filter { $0.id != pinned.id }.map { post in
+            var mutable = post
+            mutable.isPinned = false
+            return mutable
+        }
+        reordered.insert(pinned, at: 0)
+        return reordered
+    }
+
+    private func fetchActivePinnedPost() async -> Post? {
+        do {
+            let configDoc = try await pinnedConfigRef.getDocument()
+            guard let data = configDoc.data(),
+                  let postID = data["postID"] as? String,
+                  let expiresTimestamp = data["expiresAt"] as? Timestamp else {
+                return nil
+            }
+
+            let expiresAt = expiresTimestamp.dateValue()
+            guard expiresAt > Date() else {
+                try? await pinnedConfigRef.delete()
+                return nil
+            }
+
+            if let alreadyLoaded = posts.first(where: { $0.id == postID }) {
+                return alreadyLoaded
+            }
+
+            let postDoc = try await db.collection("posts").document(postID).getDocument()
+            guard postDoc.exists else { return nil }
+
+            var post = try postDoc.data(as: Post.self)
+            post.id = postDoc.documentID
+
+            if let location = userLocation {
+                let postLocation = CLLocation(latitude: post.latitude, longitude: post.longitude)
+                post.distanceKm = location.distance(from: postLocation) / 1000
+            }
+
+            if let uid = Auth.auth().currentUser?.uid {
+                let likeDoc = try? await db.collection("posts")
+                    .document(post.id)
+                    .collection("likes")
+                    .document(uid)
+                    .getDocument()
+                post.isLiked = likeDoc?.exists ?? false
+            }
+
+            return post
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: - Upload de post (múltiplas mídias)
 
     func uploadPost(
-        mediaData: Data,
-        mediaType: Post.MediaType,
+        mediaDataArray: [(Data, Post.MediaType)],
         caption: String,
         location: CLLocation?,
         city: String,
@@ -148,40 +215,63 @@ class FeedManager: ObservableObject {
         uploadProgress = 0
 
         let postID = UUID().uuidString
-        let ext = mediaType == .photo ? "jpg" : "mp4"
-        let ref = storage.reference().child("posts/\(uid)/\(postID).\(ext)")
-        let metadata = StorageMetadata()
-        metadata.contentType = mediaType == .photo ? "image/jpeg" : "video/mp4"
-
         let name = userData["name"] as? String ?? "Usuário"
         let avatar = userData["avatarURL"] as? String ?? ""
         let isVerified = userData["isVerified"] as? Bool ?? false
+        let username = userData["username"] as? String ?? ""
+
+        // Upload de múltiplas mídias
+        var mediaURLs: [String] = []
+        var mediaTypes: [Post.MediaType] = []
+        
+        for (index, (mediaData, mediaType)) in mediaDataArray.enumerated() {
+            let ext = mediaType == .photo ? "jpg" : "mp4"
+            let ref = storage.reference().child("posts/\(uid)/\(postID)_\(index).\(ext)")
+            let metadata = StorageMetadata()
+            metadata.contentType = mediaType == .photo ? "image/jpeg" : "video/mp4"
+
+            do {
+                _ = try await ref.putDataAsync(mediaData, metadata: metadata)
+                let downloadURL = try await ref.downloadURL()
+                mediaURLs.append(downloadURL.absoluteString)
+                mediaTypes.append(mediaType)
+            } catch {
+                errorMessage = "Erro ao fazer upload: \(error.localizedDescription)"
+                continue
+            }
+        }
+
+        guard !mediaURLs.isEmpty else {
+            isUploading = false
+            return
+        }
+
+        // Usar a primeira mídia como mídia principal (para compatibility)
+        let mainMediaURL = mediaURLs[0]
+        let mainMediaType = mediaTypes[0]
+
+        let post = Post(
+            id: postID,
+            userID: uid,
+            userName: name,
+            username: username,
+            userAvatarURL: avatar,
+            isVerified: isVerified,
+            mediaURL: mainMediaURL,
+            mediaURLs: mediaURLs,
+            mediaType: mainMediaType,
+            mediaTypes: mediaTypes,
+            caption: caption,
+            city: city,
+            region: region,
+            latitude: location?.coordinate.latitude ?? 0,
+            longitude: location?.coordinate.longitude ?? 0,
+            likesCount: 0,
+            commentsCount: 0,
+            createdAt: Date()
+        )
 
         do {
-            _ = try await ref.putDataAsync(mediaData, metadata: metadata)
-            let downloadURL = try await ref.downloadURL()
-            let username = userData["username"] as? String ?? ""
-
-
-            let post = Post(
-                id: postID,
-                userID: uid,
-                userName: name,
-                username: username,  // novo
-                userAvatarURL: avatar,
-                isVerified: isVerified,
-                mediaURL: downloadURL.absoluteString,
-                mediaType: mediaType,
-                caption: caption,
-                city: city,
-                region: region,
-                latitude: location?.coordinate.latitude ?? 0,
-                longitude: location?.coordinate.longitude ?? 0,
-                likesCount: 0,
-                commentsCount: 0,
-                createdAt: Date()
-            )
-
             try db.collection("posts").document(postID).setData(from: post)
 
             // Notifica seguidores sobre novo post
@@ -199,7 +289,7 @@ class FeedManager: ObservableObject {
                     fromUserName: name,
                     fromUserAvatar: avatar,
                     postID: postID,
-                    postMediaURL: downloadURL.absoluteString,
+                    postMediaURL: mainMediaURL,
                     message: "\(name) fez uma nova publicação"
                 )
             }
@@ -209,6 +299,25 @@ class FeedManager: ObservableObject {
         }
 
         isUploading = false
+    }
+
+    // MARK: - Upload de post (única mídia - compatibility)
+
+    func uploadPost(
+        mediaData: Data,
+        mediaType: Post.MediaType,
+        caption: String,
+        location: CLLocation?,
+        city: String,
+        region: String
+    ) async {
+        await uploadPost(
+            mediaDataArray: [(mediaData, mediaType)],
+            caption: caption,
+            location: location,
+            city: city,
+            region: region
+        )
     }
 
     // MARK: - Likes
@@ -435,12 +544,53 @@ class FeedManager: ObservableObject {
 
         do {
             try await db.collection("posts").document(post.id).delete()
-            let ext = post.mediaType == .photo ? "jpg" : "mp4"
-            let ref = storage.reference().child("posts/\(uid)/\(post.id).\(ext)")
-            try? await ref.delete()
+            
+            // Deletar todas as mídias associadas
+            if post.mediaURLs.isEmpty {
+                // Legacy: apenas uma mídia
+                let ext = post.mediaType == .photo ? "jpg" : "mp4"
+                let ref = storage.reference().child("posts/\(uid)/\(post.id).\(ext)")
+                try? await ref.delete()
+            } else {
+                // Múltiplas mídias
+                for (index, _) in post.mediaURLs.enumerated() {
+                    let mediaType: Post.MediaType = (index < post.mediaTypes.count) ? post.mediaTypes[index] : post.mediaType
+                    let ext = mediaType == .video ? "mp4" : "jpg"
+                    let ref = storage.reference().child("posts/\(uid)/\(post.id)_\(index).\(ext)")
+                    try? await ref.delete()
+                }
+            }
             posts.removeAll { $0.id == post.id }
         } catch {
             // // print("Erro ao deletar post: \(error)")
+        }
+    }
+
+    func pinPostForUsers(_ post: Post) async {
+        guard let currentUID = Auth.auth().currentUser?.uid else { return }
+        do {
+            let expiresAt = Date().addingTimeInterval(60 * 60)
+            try await pinnedConfigRef.setData([
+                "postID": post.id,
+                "pinnedBy": currentUID,
+                "pinnedAt": Timestamp(date: Date()),
+                "expiresAt": Timestamp(date: expiresAt)
+            ], merge: true)
+
+            posts = posts.map { existing in
+                var mutable = existing
+                mutable.isPinned = false
+                return mutable
+            }
+            var pinnedPost = post
+            pinnedPost.isPinned = true
+            posts.removeAll { $0.id == pinnedPost.id }
+            posts.insert(pinnedPost, at: 0)
+        } catch {
+            errorMessage = String(
+                format: NSLocalizedString("Erro ao fixar publicação: %@", comment: ""),
+                error.localizedDescription
+            )
         }
     }
 }

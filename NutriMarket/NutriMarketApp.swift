@@ -17,6 +17,7 @@ struct NutriMarketApp: App {
     @StateObject private var notificationManager = NotificationManager()
     @StateObject private var trophyManager = TrophyManager()
     @StateObject private var messagesManager = MessagesManager()
+    @StateObject private var languageManager = LanguageManager()
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
@@ -45,6 +46,8 @@ struct NutriMarketApp: App {
                 .environmentObject(notificationManager)
                 .environmentObject(trophyManager)
                 .environmentObject(messagesManager)
+                .environmentObject(languageManager)
+                .environment(\.locale, Locale(identifier: languageManager.selectedLanguage.rawValue))
                 .onReceive(NotificationCenter.default.publisher(
                     for: UIApplication.didBecomeActiveNotification)
                 ) { _ in

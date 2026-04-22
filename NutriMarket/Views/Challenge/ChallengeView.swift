@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import Combine
 
 struct ChallengeView: View {
     @EnvironmentObject var challengeManager: ChallengeManager
@@ -111,6 +112,14 @@ struct ChallengeView: View {
                         caloriesBurned: healthKit.todayCaloriesBurned,
                         dailyGoal: dailyCalorieBurnGoal
                     )
+                }
+            }
+        }
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { _ in
+            Task {
+                await trophyManager.checkExpiredChallenges()
+                if let uid = Auth.auth().currentUser?.uid {
+                    await challengeManager.loadChallenges(uid: uid)
                 }
             }
         }
@@ -244,29 +253,6 @@ struct ChallengeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
-
-            // Botão de simulação — remover antes de publicar
-            if !challengeManager.activeChallenges.isEmpty {
-                Button {
-                    Task {
-                        let db = Firestore.firestore()
-                        for challenge in challengeManager.activeChallenges {
-                            try? await db.collection("challenges").document(challenge.id)
-                                .updateData(["endDate": Timestamp(date: Date().addingTimeInterval(-1))])
-                        }
-                        await trophyManager.checkExpiredChallenges()
-                    }
-                } label: {
-                    HStack {
-                        Image(systemName: "clock.badge.exclamationmark")
-                        Text("🧪 Simular fim de desafio").fontWeight(.medium)
-                    }
-                    .frame(maxWidth: .infinity).padding()
-                    .background(Color.red.opacity(0.12)).foregroundStyle(.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                .buttonStyle(.plain)
-            }
 
             if challengeManager.activeChallenges.isEmpty {
                 VStack(spacing: 12) {

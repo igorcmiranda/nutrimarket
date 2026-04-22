@@ -1,10 +1,12 @@
 import SwiftUI
+import SDWebImageSwiftUI
 
 struct BodyAnalysisView: View {
     @EnvironmentObject var profile: UserProfile
     @EnvironmentObject var glasses: GlassesManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var usageManager: UsageManager
+    @StateObject private var analysisStore = BodyAnalysisStore()
     @Binding var showSubscription: Bool
 
     @State private var isAnalyzing = false
@@ -16,6 +18,8 @@ struct BodyAnalysisView: View {
     @State private var showWorkoutPlan = false
     @State private var isGeneratingWorkout = false
     @State private var showPaywall = false
+    @State private var lastImageURL: String?
+    @State private var selectedHistoryID: String?
 
     private let speech = SpeechManager()
     private let analyzer = BodyAnalyzer(apiKey: Secrets.claudeAPIKey)
@@ -36,6 +40,7 @@ struct BodyAnalysisView: View {
                     } else {
                         instructionsCard
                         cameraCard
+                        historyCard
                         if let result {
                             resultCard(result)
                         }
@@ -53,6 +58,17 @@ struct BodyAnalysisView: View {
         .onAppear {
             glasses.onFrameCaptured = { image in
                 Task { await handleFrame(image) }
+            }
+            Task {
+                await analysisStore.loadLatest()
+                await analysisStore.loadHistory()
+                if let latest = analysisStore.latest {
+                    result = latest.result
+                    workoutPlan = latest.workoutPlan
+                    lastImageURL = latest.imageURL
+                    showDisclaimer = false
+                    selectedHistoryID = "latest"
+                }
             }
         }
         .sheet(isPresented: $showCameraPicker) {
@@ -216,6 +232,19 @@ struct BodyAnalysisView: View {
 
     func resultCard(_ result: BodyAnalysisResult) -> some View {
         VStack(spacing: 16) {
+            if let imageURL = lastImageURL, let url = URL(string: imageURL) {
+                WebImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color(.systemGray5))
+                        .overlay(ProgressView())
+                }
+                .frame(height: 220)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
 
             VStack(spacing: 8) {
                 Text("Gordura corporal estimada")
@@ -291,6 +320,61 @@ struct BodyAnalysisView: View {
         }
     }
 
+    var historyCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Histórico de análises", systemImage: "clock.arrow.circlepath")
+                    .font(.headline)
+                Spacer()
+                if analysisStore.history.isEmpty {
+                    Text("Sem histórico")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if analysisStore.history.isEmpty {
+                Text("Faça sua primeira análise para começar o histórico.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(analysisStore.history.prefix(5)) { item in
+                    Button {
+                        selectedHistoryID = item.id
+                        result = item.analysis.result
+                        workoutPlan = item.analysis.workoutPlan
+                        lastImageURL = item.analysis.imageURL
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: selectedHistoryID == item.id ? "checkmark.circle.fill" : "clock")
+                                .foregroundStyle(selectedHistoryID == item.id ? .green : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.analysis.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                Text("Gordura: \(item.analysis.result.fatPercentageLow)-\(item.analysis.result.fatPercentageHigh)%")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(10)
+                        .background(Color(.systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+    }
+
     var analyzingOverlay: some View {
         ZStack {
             Color.black.opacity(0.4).ignoresSafeArea()
@@ -334,6 +418,12 @@ struct BodyAnalysisView: View {
             let plan = try await workoutGenerator.generate(bodyResult: analysisResult, profile: profile)
             workoutPlan = plan
             isGeneratingWorkout = false
+            lastImageURL = nil
+            await analysisStore.save(image: image, result: analysisResult, workoutPlan: plan)
+            if let latest = analysisStore.latest {
+                lastImageURL = latest.imageURL
+            }
+            selectedHistoryID = analysisStore.history.first?.id ?? "latest"
 
         } catch {
             // // print("Erro na análise: \(error)")

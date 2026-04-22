@@ -108,7 +108,7 @@ class ChallengeManager: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let challengeID = UUID().uuidString
         let now = Date()
-        let endDate = Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now
+        let endDate = now.addingTimeInterval(30 * 24 * 60 * 60)
 
         let challenge = Challenge(
             id: challengeID,
@@ -164,7 +164,7 @@ class ChallengeManager: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let challengeID = UUID().uuidString
         let now = Date()
-        let endDate = Calendar.current.date(byAdding: .month, value: 1, to: now) ?? now
+        let endDate = now.addingTimeInterval(30 * 24 * 60 * 60)
 
         let challenge = Challenge(
             id: challengeID,

@@ -13,19 +13,32 @@ struct PostCardView: View, Equatable {
     }
     @EnvironmentObject var feedManager: FeedManager
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var feedViewModel: FeedViewModel
     let post: Post
     @Binding var showSubscription: Bool
     
     @State private var showComments = false
     @State private var showDeleteConfirm = false
+    @State private var showPinConfirm = false
     @State private var showPublicProfile = false
     @State private var isLikeAnimating = false
     @State private var showFullCaption = false
     @State private var isVerifiedLive: Bool = false
+    @State private var currentMediaIndex = 0
+    @State private var isVisible: Bool = false
+    @State private var currentVideoIndex: Int? = nil
 
     // No onAppear, busca o isVerified atualizado
     var isOwnPost: Bool {
         post.userID == authManager.currentUser?.uid
+    }
+    
+    // Calcula o total de mídias no post
+    var totalMediaCount: Int {
+        if post.mediaURLs.isEmpty {
+            return post.mediaURL.isEmpty ? 0 : 1
+        }
+        return post.mediaURLs.count
     }
     
     var body: some View {
@@ -53,6 +66,14 @@ struct PostCardView: View, Equatable {
             Button("Excluir", role: .destructive) {
                 Task { await feedManager.deletePost(post) }
             }
+        }
+        .confirmationDialog("Fixar publicação para todos por 1 hora?",
+                            isPresented: $showPinConfirm,
+                            titleVisibility: .visible) {
+            Button("Fixar para usuários") {
+                Task { await feedManager.pinPostForUsers(post) }
+            }
+            Button("Cancelar", role: .cancel) { }
         }
         .onAppear {
             isVerifiedLive = post.isVerified
@@ -100,6 +121,11 @@ struct PostCardView: View, Equatable {
                             VerifiedBadge(size: 13)
                         }
                     }
+                    if post.isPinned {
+                        Text("📌 Fixado")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
+                    }
                     HStack(spacing: 4) {
                         if !post.city.isEmpty {
                             Image(systemName: "mappin.fill")
@@ -146,6 +172,14 @@ struct PostCardView: View, Equatable {
                 
                 // Menu
                 Menu {
+                    if authManager.currentUser?.isAdmin == true {
+                        Button {
+                            showPinConfirm = true
+                        } label: {
+                            Label("Fixar para usuários", systemImage: "pin.fill")
+                        }
+                    }
+
                     if isOwnPost {
                         Button(role: .destructive) {
                             showDeleteConfirm = true
@@ -168,17 +202,66 @@ struct PostCardView: View, Equatable {
         .padding(.vertical, 10)
     }
     
-    // MARK: - Mídia
+    // MARK: - Mídia (com suporte a múltiplas mídias)
     
     @ViewBuilder
     var mediaView: some View {
-        if post.mediaType == .video {
-            VideoPlayerView(url: URL(string: post.mediaURL)!)
+        let mediaURLs = post.mediaURLs.isEmpty ? [post.mediaURL] : post.mediaURLs
+        let mediaTypes = post.mediaTypes.isEmpty ? [post.mediaType] : post.mediaTypes
+        
+        if mediaURLs.first?.isEmpty ?? true {
+            // Sem mídia
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(maxWidth: .infinity)
+                .frame(height: UIScreen.main.bounds.width * 1.25)
+                .overlay(
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                )
+        } else if mediaURLs.count == 1 {
+            // Uma única mídia
+            mediaContentView(url: mediaURLs[0], type: mediaTypes[0])
+        } else {
+            // Múltiplas mídias - Carousel
+            ZStack(alignment: .bottom) {
+                TabView(selection: $currentMediaIndex) {
+                    ForEach(Array(mediaURLs.enumerated()), id: \.offset) { index, url in
+                        mediaContentView(url: url, type: mediaTypes[index])
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                
+                // Indicadores de página (pontos cinza)
+                if mediaURLs.count > 1 {
+                    HStack(spacing: 6) {
+                        ForEach(0..<mediaURLs.count, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentMediaIndex ? Color.white : Color.gray.opacity(0.6))
+                                .frame(width: 8, height: 8)
+                                .shadow(radius: 1)
+                        }
+                    }
+                    .padding(.bottom, 8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: UIScreen.main.bounds.width * 1.25)
+            .clipped()
+        }
+    }
+    
+    @ViewBuilder
+    func mediaContentView(url: String, type: Post.MediaType) -> some View {
+        if type == .video {
+            VideoPlayerView(url: URL(string: url)!)
                 .frame(maxWidth: .infinity)
                 .frame(height: UIScreen.main.bounds.width * 1.25)
                 .clipped()
         } else {
-            WebImage(url: URL(string: post.mediaURL)) { image in
+            WebImage(url: URL(string: url)) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
                 Rectangle()
@@ -280,16 +363,61 @@ struct PostCardView: View, Equatable {
 
     struct VideoPlayerView: UIViewControllerRepresentable {
         let url: URL
-
+        var isAutoPlay: Bool = false
+        var isLoop: Bool = true
+        
         func makeUIViewController(context: Context) -> AVPlayerViewController {
             let controller = AVPlayerViewController()
             let player = AVPlayer(url: url)
+            player.actionAtItemEnd = .none
+            
+            // Configura loop
+            if isLoop {
+                NotificationCenter.default.addObserver(
+                    context.coordinator,
+                    selector: #selector(Coordinator.playerDidFinishPlaying),
+                    name: .AVPlayerItemDidPlayToEndTime,
+                    object: player.currentItem
+                )
+            }
+            
             controller.player = player
-            controller.showsPlaybackControls = true
+            controller.showsPlaybackControls = false
+            
+            if isAutoPlay {
+                player.play()
+            }
+            
             return controller
         }
-
-        func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {}
+        
+        func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+            if isAutoPlay {
+                uiViewController.player?.play()
+            } else {
+                uiViewController.player?.pause()
+            }
+        }
+        
+        func makeCoordinator() -> Coordinator {
+            Coordinator(self)
+        }
+        
+        class Coordinator: NSObject {
+            var parent: VideoPlayerView
+            
+            init(_ parent: VideoPlayerView) {
+                self.parent = parent
+            }
+            
+            @objc func playerDidFinishPlaying() {
+                // Recomeça o vídeo do início quando terminar
+                if let player = AVPlayer(url: parent.url) as AVPlayer? {
+                    player.seek(to: .zero)
+                    player.play()
+                }
+            }
+        }
     }
 
 struct AvatarView: View {
@@ -337,4 +465,3 @@ struct AvatarView: View {
             return "agora"
         }
     }
-

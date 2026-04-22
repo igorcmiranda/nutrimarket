@@ -55,11 +55,15 @@ class AuthManager: ObservableObject {
                     username: user.username,
                     isAdmin: user.isAdmin,
                     isVerified: user.isVerified,
-                    createdAt: user.createdAt
+                    createdAt: user.createdAt,
+                    preferredLanguage: user.preferredLanguage
                 )
             }
         } catch {
-            errorMessage = "Erro ao atualizar foto: \(error.localizedDescription)"
+            errorMessage = String(
+                format: NSLocalizedString("Erro ao atualizar foto: %@", comment: ""),
+                error.localizedDescription
+            )
         }
     }
 
@@ -75,11 +79,15 @@ class AuthManager: ObservableObject {
                     username: data["username"] as? String ?? "",
                     isAdmin: data["isAdmin"] as? Bool ?? false,
                     isVerified: data["isVerified"] as? Bool ?? false,
-                    createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
+                    preferredLanguage: data["preferredLanguage"] as? String
                 )
             }
         } catch {
-            errorMessage = "Erro ao carregar perfil: \(error.localizedDescription)"
+            errorMessage = String(
+                format: NSLocalizedString("Erro ao carregar perfil: %@", comment: ""),
+                error.localizedDescription
+            )
         }
         isLoading = false
     }
@@ -95,7 +103,7 @@ class AuthManager: ObservableObject {
             if let fetchedEmail = await fetchEmailByUsername(loginEmail) {
                 loginEmail = fetchedEmail
             } else {
-                errorMessage = "Usuário não encontrado"
+                errorMessage = NSLocalizedString("Usuário não encontrado", comment: "")
                 isLoading = false
                 return
             }
@@ -105,6 +113,11 @@ class AuthManager: ObservableObject {
             try await Auth.auth().signIn(withEmail: loginEmail, password: password)
             if let uid = Auth.auth().currentUser?.uid {
                 await fetchUserProfile(uid: uid)
+                let localLanguage = UserDefaults.standard.string(forKey: LanguageManager.userDefaultsKey)
+                    ?? AppLanguage.pt.rawValue
+                if currentUser?.preferredLanguage != localLanguage {
+                    await updatePreferredLanguage(localLanguage)
+                }
             }
         } catch {
             errorMessage = friendlyError(error)
@@ -127,6 +140,7 @@ class AuthManager: ObservableObject {
                 "isAdmin": false,
                 "isVerified": false,
                 "createdAt": Timestamp(date: Date()),
+                "preferredLanguage": UserDefaults.standard.string(forKey: LanguageManager.userDefaultsKey) ?? AppLanguage.pt.rawValue,
                 "weight": 0,
                 "height": 0,
                 "age": 0,
@@ -177,7 +191,10 @@ class AuthManager: ObservableObject {
                 "goal": profile.goal
             ])
         } catch {
-            errorMessage = "Erro ao salvar perfil: \(error.localizedDescription)"
+            errorMessage = String(
+                format: NSLocalizedString("Erro ao salvar perfil: %@", comment: ""),
+                error.localizedDescription
+            )
         }
     }
     
@@ -189,19 +206,37 @@ class AuthManager: ObservableObject {
         return snapshot?.documents.first?.data()["email"] as? String
     }
 
+    func updatePreferredLanguage(_ languageCode: String) async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            try await db.collection("users").document(uid).updateData([
+                "preferredLanguage": languageCode
+            ])
+        } catch {
+            errorMessage = String(
+                format: NSLocalizedString("Erro ao salvar idioma: %@", comment: ""),
+                error.localizedDescription
+            )
+        }
+    }
+
     var isLoggedIn: Bool { currentUser != nil }
 
     private func friendlyError(_ error: Error) -> String {
         let nsError = error as NSError
         let code = nsError.code
         switch code {
-        case 17007: return "Este email já está cadastrado."
-        case 17008: return "Email inválido."
-        case 17026: return "Senha muito fraca. Use ao menos 6 caracteres."
-        case 17009: return "Senha incorreta."
-        case 17011: return "Usuário não encontrado."
-        case 17020: return "Sem conexão com a internet."
-        default:    return "Erro: \(error.localizedDescription)"
+        case 17007: return NSLocalizedString("Este email já está cadastrado.", comment: "")
+        case 17008: return NSLocalizedString("Email inválido.", comment: "")
+        case 17026: return NSLocalizedString("Senha muito fraca. Use ao menos 6 caracteres.", comment: "")
+        case 17009: return NSLocalizedString("Senha incorreta.", comment: "")
+        case 17011: return NSLocalizedString("Usuário não encontrado.", comment: "")
+        case 17020: return NSLocalizedString("Sem conexão com a internet.", comment: "")
+        default:
+            return String(
+                format: NSLocalizedString("Erro: %@", comment: ""),
+                error.localizedDescription
+            )
         }
     }
 
@@ -221,4 +256,5 @@ struct AppUser {
     let isAdmin: Bool
     let isVerified: Bool
     let createdAt: Date
+    let preferredLanguage: String?
 }

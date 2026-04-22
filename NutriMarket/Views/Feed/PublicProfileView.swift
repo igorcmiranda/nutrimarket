@@ -203,30 +203,34 @@ struct PublicProfileView: View {
 
     func loadProfile() async {
         isLoading = true
+        do {
+            async let userDocTask = db.collection("users").document(userID).getDocument()
+            async let followingTask = db.collection("follows")
+                .document(userID).collection("following").getDocuments()
+            async let trophiesTask = db.collection("users").document(userID)
+                .collection("trophies")
+                .order(by: "earnedAt", descending: true)
+                .getDocuments()
+            async let postsTask = db.collection("posts")
+                .whereField("userID", isEqualTo: userID)
+                .order(by: "createdAt", descending: true)
+                .limit(to: 60)
+                .getDocuments()
 
-        // Dados do usuário
-        db.collection("users").document(userID)
-            .addSnapshotListener { snapshot, _ in
-                guard let data = snapshot?.data() else { return }
-                Task { @MainActor in
-                    self.userName = data["name"] as? String ?? ""
-                    self.userAvatarURL = data["avatarURL"] as? String ?? ""
-                    self.isVerified = data["isVerified"] as? Bool ?? false
-                    self.followersCount = data["followersCount"] as? Int ?? 0
-                }
+            let (userDoc, followingSnapshot, trophiesSnapshot, postsSnapshot) = try await (
+                userDocTask, followingTask, trophiesTask, postsTask
+            )
+
+            if let data = userDoc.data() {
+                userName = data["name"] as? String ?? ""
+                userAvatarURL = data["avatarURL"] as? String ?? ""
+                isVerified = data["isVerified"] as? Bool ?? false
+                followersCount = data["followersCount"] as? Int ?? 0
             }
 
-        // Seguindo count
-        if let snapshot = try? await db.collection("follows")
-            .document(userID).collection("following").getDocuments() {
-            followingCount = snapshot.documents.count
-        }
-        // Carrega troféus
-        if let snapshot = try? await db.collection("users").document(userID)
-            .collection("trophies")
-            .order(by: "earnedAt", descending: true)
-            .getDocuments() {
-            trophies = snapshot.documents.compactMap { doc -> Trophy? in
+            followingCount = followingSnapshot.documents.count
+
+            trophies = trophiesSnapshot.documents.compactMap { doc -> Trophy? in
                 var data = doc.data()
                 data["id"] = doc.documentID
                 if let ts = data["earnedAt"] as? Timestamp {
@@ -246,10 +250,15 @@ struct PublicProfileView: View {
                     points: points
                 )
             }
-        }
 
-        // Posts do usuário
-        userPosts = feedManager.posts.filter { $0.userID == userID }
+            userPosts = postsSnapshot.documents.compactMap { doc -> Post? in
+                var post = try? doc.data(as: Post.self)
+                post?.id = doc.documentID
+                return post
+            }
+        } catch {
+            userPosts = []
+        }
         isLoading = false
     }
 }

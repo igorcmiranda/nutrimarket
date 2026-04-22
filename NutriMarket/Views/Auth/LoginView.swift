@@ -2,15 +2,16 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var languageManager: LanguageManager
     @State private var email = ""
     @State private var password = ""
     @State private var showRegister = false
     @State private var showResetPassword = false
+    @State private var showLanguagePicker = false
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Fundo escuro
                 LinearGradient(
                     colors: [
                         Color(hex: "080818"),
@@ -24,9 +25,11 @@ struct LoginView: View {
 
                 ScrollView {
                     VStack(spacing: 32) {
-
-                        // Logo e nome
                         VStack(spacing: 16) {
+                            languageButton
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .padding(.horizontal)
+
                             Image("AppLogo")
                                 .resizable()
                                 .scaledToFit()
@@ -50,7 +53,6 @@ struct LoginView: View {
                                 .foregroundStyle(Color(hex: "8B9CC8"))
                         }
 
-                        // Formulário
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Email ou @usuário")
                                 .font(.caption).fontWeight(.medium)
@@ -69,73 +71,69 @@ struct LoginView: View {
                                 )
                         }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Senha")
-                                    .font(.caption).fontWeight(.medium)
-                                    .foregroundStyle(Color(hex: "8B9CC8"))
-                                SecureField("••••••••", text: $password)
-                                    .foregroundStyle(.white)
-                                    .padding()
-                                    .background(Color(hex: "1A1A3E"))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(hex: "3D4A8A"), lineWidth: 1)
-                                    )
-                            }
-
-                            HStack {
-                                Spacer()
-                                Button("Esqueceu a senha?") {
-                                    showResetPassword = true
-                                }
-                                .font(.caption)
-                                .foregroundStyle(Color(hex: "60A5FA"))
-                            }
-
-                            // Erro
-                            if !authManager.errorMessage.isEmpty {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .foregroundStyle(.red)
-                                    Text(authManager.errorMessage)
-                                        .font(.caption).foregroundStyle(.red)
-                                }
-                                .padding()
-                                .background(Color.red.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-
-                            // Botão entrar
-                            Button {
-                                Task { await authManager.login(email: email, password: password) }
-                            } label: {
-                                HStack {
-                                    if authManager.isLoading {
-                                        ProgressView().tint(.white).scaleEffect(0.8)
-                                    }
-                                    Text("Entrar")
-                                        .fontWeight(.bold)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color(hex: "4A6FE8"), Color(hex: "7B5FDC")],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Senha")
+                                .font(.caption).fontWeight(.medium)
+                                .foregroundStyle(Color(hex: "8B9CC8"))
+                            SecureField("••••••••", text: $password)
                                 .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .shadow(color: Color(hex: "4A6FE8").opacity(0.4), radius: 10, y: 4)
-                            }
-                            .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
-                            .opacity(email.isEmpty || password.isEmpty ? 0.6 : 1)
+                                .padding()
+                                .background(Color(hex: "1A1A3E"))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(hex: "3D4A8A"), lineWidth: 1)
+                                )
                         }
+
+                        HStack {
+                            Spacer()
+                            Button("Esqueceu a senha?") {
+                                showResetPassword = true
+                            }
+                            .font(.caption)
+                            .foregroundStyle(Color(hex: "60A5FA"))
+                        }
+
+                        if !authManager.errorMessage.isEmpty {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                Text(authManager.errorMessage)
+                                    .font(.caption).foregroundStyle(.red)
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+
+                        Button {
+                            Task { await authManager.login(email: email, password: password) }
+                        } label: {
+                            HStack {
+                                if authManager.isLoading {
+                                    ProgressView().tint(.white).scaleEffect(0.8)
+                                }
+                                Text("Entrar")
+                                    .fontWeight(.bold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(hex: "4A6FE8"), Color(hex: "7B5FDC")],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .shadow(color: Color(hex: "4A6FE8").opacity(0.4), radius: 10, y: 4)
+                        }
+                        .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
+                        .opacity(email.isEmpty || password.isEmpty ? 0.6 : 1)
                         .padding(.horizontal)
 
-                        // Cadastro
                         VStack(spacing: 12) {
                             HStack {
                                 Rectangle()
@@ -171,11 +169,71 @@ struct LoginView: View {
             .sheet(isPresented: $showRegister) {
                 RegisterView()
                     .environmentObject(authManager)
+                    .environmentObject(languageManager)
             }
             .sheet(isPresented: $showResetPassword) {
                 ResetPasswordView()
                     .environmentObject(authManager)
+                    .environmentObject(languageManager)
+            }
+            .sheet(isPresented: $showLanguagePicker) {
+                languageSheet
             }
         }
     }
 
+    private var languageButton: some View {
+        Button {
+            showLanguagePicker = true
+        } label: {
+            HStack(spacing: 8) {
+                Text(languageManager.selectedLanguage.flag)
+                Text(languageManager.selectedLanguage.displayName)
+                    .font(.caption.weight(.semibold))
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.bold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(hex: "1A1A3E"))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color(hex: "3D4A8A"), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var languageSheet: some View {
+        NavigationStack {
+            List(AppLanguage.allCases) { language in
+                Button {
+                    Task {
+                        languageManager.setLanguage(language)
+                        await authManager.updatePreferredLanguage(language.rawValue)
+                        showLanguagePicker = false
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Text(language.flag)
+                        Text(language.displayName)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if languageManager.selectedLanguage == language {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Color(hex: "4A6FE8"))
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Escolher idioma")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fechar") { showLanguagePicker = false }
+                }
+            }
+        }
+    }
+}

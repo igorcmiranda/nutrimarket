@@ -7,8 +7,7 @@ struct SearchView: View {
     @State private var query = ""
     @State private var results: [SearchUser] = []
     @State private var isSearching = false
-    @State private var selectedUserID: String? = nil
-    @State private var showProfile = false
+    @State private var selectedUser: SearchUser?
     private let db = Firestore.firestore()
 
     struct SearchUser: Identifiable {
@@ -28,12 +27,10 @@ struct SearchView: View {
             }
             .navigationTitle("Buscar")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showProfile) {
-                if let uid = selectedUserID {
-                    PublicProfileView(userID: uid)
-                        .environmentObject(feedManager)
-                        .environmentObject(authManager)
-                }
+            .sheet(item: $selectedUser) { user in
+                PublicProfileView(userID: user.id)
+                    .environmentObject(feedManager)
+                    .environmentObject(authManager)
             }
         }
     }
@@ -142,8 +139,7 @@ struct SearchView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                selectedUserID = user.id
-                showProfile = true
+                selectedUser = user
             }
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
