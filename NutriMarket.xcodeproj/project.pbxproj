@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8103D5D12F8D98A70028FDA0 /* MWDATCamera in Frameworks */ = {isa = PBXBuildFile; productRef = 8103D5D02F8D98A70028FDA0 /* MWDATCamera */; };
-		8103D5D32F8D98A70028FDA0 /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8103D5D22F8D98A70028FDA0 /* MWDATCore */; };
-		8103D5D52F8D98A70028FDA0 /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 8103D5D42F8D98A70028FDA0 /* MWDATMockDevice */; };
-		81DA31DB2F8EC45B00FFF443 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 81DA31DA2F8EC45B00FFF443 /* FirebaseAuth */; };
-		81DA31DD2F8EC45C00FFF443 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 81DA31DC2F8EC45C00FFF443 /* FirebaseFirestore */; };
+		81F392B52F92EB6D001535F4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392B42F92EB6D001535F4 /* FirebaseAuth */; };
+		81F392B72F92EB6D001535F4 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392B62F92EB6D001535F4 /* FirebaseDatabase */; };
+		81F392B92F92EB6D001535F4 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392B82F92EB6D001535F4 /* FirebaseFirestore */; };
+		81F392BB2F92EB6D001535F4 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392BA2F92EB6D001535F4 /* FirebaseMessaging */; };
+		81F392BD2F92EB6D001535F4 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392BC2F92EB6D001535F4 /* FirebaseStorage */; };
+		81F392C02F92EB82001535F4 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392BF2F92EB82001535F4 /* SDWebImageSwiftUI */; };
+		81F392C32F92EB91001535F4 /* MWDATCamera in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392C22F92EB91001535F4 /* MWDATCamera */; };
+		81F392C52F92EB91001535F4 /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392C42F92EB91001535F4 /* MWDATCore */; };
+		81F392C72F92EB91001535F4 /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 81F392C62F92EB91001535F4 /* MWDATMockDevice */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,11 +93,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8103D5D12F8D98A70028FDA0 /* MWDATCamera in Frameworks */,
-				8103D5D52F8D98A70028FDA0 /* MWDATMockDevice in Frameworks */,
-				8103D5D32F8D98A70028FDA0 /* MWDATCore in Frameworks */,
-				81DA31DD2F8EC45C00FFF443 /* FirebaseFirestore in Frameworks */,
-				81DA31DB2F8EC45B00FFF443 /* FirebaseAuth in Frameworks */,
+				81F392C02F92EB82001535F4 /* SDWebImageSwiftUI in Frameworks */,
+				81F392BB2F92EB6D001535F4 /* FirebaseMessaging in Frameworks */,
+				81F392B72F92EB6D001535F4 /* FirebaseDatabase in Frameworks */,
+				81F392B52F92EB6D001535F4 /* FirebaseAuth in Frameworks */,
+				81F392C72F92EB91001535F4 /* MWDATMockDevice in Frameworks */,
+				81F392BD2F92EB6D001535F4 /* FirebaseStorage in Frameworks */,
+				81F392B92F92EB6D001535F4 /* FirebaseFirestore in Frameworks */,
+				81F392C32F92EB91001535F4 /* MWDATCamera in Frameworks */,
+				81F392C52F92EB91001535F4 /* MWDATCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,11 +162,15 @@
 			);
 			name = NutriMarket;
 			packageProductDependencies = (
-				8103D5D02F8D98A70028FDA0 /* MWDATCamera */,
-				8103D5D22F8D98A70028FDA0 /* MWDATCore */,
-				8103D5D42F8D98A70028FDA0 /* MWDATMockDevice */,
-				81DA31DA2F8EC45B00FFF443 /* FirebaseAuth */,
-				81DA31DC2F8EC45C00FFF443 /* FirebaseFirestore */,
+				81F392B42F92EB6D001535F4 /* FirebaseAuth */,
+				81F392B62F92EB6D001535F4 /* FirebaseDatabase */,
+				81F392B82F92EB6D001535F4 /* FirebaseFirestore */,
+				81F392BA2F92EB6D001535F4 /* FirebaseMessaging */,
+				81F392BC2F92EB6D001535F4 /* FirebaseStorage */,
+				81F392BF2F92EB82001535F4 /* SDWebImageSwiftUI */,
+				81F392C22F92EB91001535F4 /* MWDATCamera */,
+				81F392C42F92EB91001535F4 /* MWDATCore */,
+				81F392C62F92EB91001535F4 /* MWDATMockDevice */,
 			);
 			productName = NutriMarket;
 			productReference = 8103D5A52F8D98810028FDA0 /* NutriMarket.app */;
@@ -243,8 +255,9 @@
 			mainGroup = 8103D59C2F8D98810028FDA0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				8103D5CF2F8D98A70028FDA0 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */,
-				81DA31D92F8EC45B00FFF443 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				81F392BE2F92EB82001535F4 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */,
+				81F392C12F92EB91001535F4 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8103D5A62F8D98810028FDA0 /* Products */;
@@ -353,6 +366,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=*]" = NutriMarket/NutriMarket.entitlements;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = H2R598964Z;
@@ -415,6 +429,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_ENTITLEMENTS[sdk=*]" = NutriMarket/NutriMarket.entitlements;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = H2R598964Z;
@@ -441,6 +456,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NutriMarket/NutriMarket.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H2R598964Z;
@@ -450,6 +466,12 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NutriMarket/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Vyro;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Necessário para conectar aos óculos Meta";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Necessário para fotografar refeições e analisar nutrição";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Usamos sua localização para mostrar posts próximos a você no feed";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necessário para selecionar fotos de refeições e análise corporal";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -458,8 +480,8 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -487,6 +509,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NutriMarket/NutriMarketRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H2R598964Z;
@@ -496,6 +519,12 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NutriMarket/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Vyro;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Necessário para conectar aos óculos Meta";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Necessário para fotografar refeições e analisar nutrição";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Usamos sua localização para mostrar posts próximos a você no feed";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necessário para selecionar fotos de refeições e análise corporal";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -504,8 +533,8 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -672,49 +701,77 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		8103D5CF2F8D98A70028FDA0 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/facebook/meta-wearables-dat-ios";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.5.0;
-			};
-		};
-		81DA31D92F8EC45B00FFF443 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.12.0;
+				minimumVersion = 12.12.1;
+			};
+		};
+		81F392BE2F92EB82001535F4 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImageSwiftUI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.4;
+			};
+		};
+		81F392C12F92EB91001535F4 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/meta-wearables-dat-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		8103D5D02F8D98A70028FDA0 /* MWDATCamera */ = {
+		81F392B42F92EB6D001535F4 /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8103D5CF2F8D98A70028FDA0 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATCamera;
-		};
-		8103D5D22F8D98A70028FDA0 /* MWDATCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 8103D5CF2F8D98A70028FDA0 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATCore;
-		};
-		8103D5D42F8D98A70028FDA0 /* MWDATMockDevice */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 8103D5CF2F8D98A70028FDA0 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATMockDevice;
-		};
-		81DA31DA2F8EC45B00FFF443 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 81DA31D92F8EC45B00FFF443 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAuth;
 		};
-		81DA31DC2F8EC45C00FFF443 /* FirebaseFirestore */ = {
+		81F392B62F92EB6D001535F4 /* FirebaseDatabase */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 81DA31D92F8EC45B00FFF443 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			package = 81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		81F392B82F92EB6D001535F4 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		81F392BA2F92EB6D001535F4 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		81F392BC2F92EB6D001535F4 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392B32F92EB6D001535F4 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		81F392BF2F92EB82001535F4 /* SDWebImageSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392BE2F92EB82001535F4 /* XCRemoteSwiftPackageReference "SDWebImageSwiftUI" */;
+			productName = SDWebImageSwiftUI;
+		};
+		81F392C22F92EB91001535F4 /* MWDATCamera */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392C12F92EB91001535F4 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATCamera;
+		};
+		81F392C42F92EB91001535F4 /* MWDATCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392C12F92EB91001535F4 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATCore;
+		};
+		81F392C62F92EB91001535F4 /* MWDATMockDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81F392C12F92EB91001535F4 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATMockDevice;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

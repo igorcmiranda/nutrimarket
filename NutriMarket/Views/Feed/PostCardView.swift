@@ -1,0 +1,340 @@
+import SwiftUI
+import AVKit
+import FirebaseFirestore
+import SDWebImage
+import SDWebImageSwiftUI
+
+struct PostCardView: View, Equatable {
+    static func == (lhs: PostCardView, rhs: PostCardView) -> Bool {
+            lhs.post.id == rhs.post.id &&
+            lhs.post.likesCount == rhs.post.likesCount &&
+            lhs.post.commentsCount == rhs.post.commentsCount &&
+            lhs.post.isLiked == rhs.post.isLiked
+    }
+    @EnvironmentObject var feedManager: FeedManager
+    @EnvironmentObject var authManager: AuthManager
+    let post: Post
+    @Binding var showSubscription: Bool
+    
+    @State private var showComments = false
+    @State private var showDeleteConfirm = false
+    @State private var showPublicProfile = false
+    @State private var isLikeAnimating = false
+    @State private var showFullCaption = false
+    @State private var isVerifiedLive: Bool = false
+
+    // No onAppear, busca o isVerified atualizado
+    var isOwnPost: Bool {
+        post.userID == authManager.currentUser?.uid
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerRow
+            mediaView
+            actionsRow
+            captionRow
+        }
+        .background(Color(.systemBackground))
+        // Sheets ficam no body, não dentro de sub-views
+        .sheet(isPresented: $showComments) {
+            CommentsView(post: post)
+                .environmentObject(feedManager)
+                .environmentObject(authManager)
+        }
+        .sheet(isPresented: $showPublicProfile) {
+            PublicProfileView(userID: post.userID)
+                .environmentObject(feedManager)
+                .environmentObject(authManager)
+        }
+        .confirmationDialog("Excluir publicação?",
+                            isPresented: $showDeleteConfirm,
+                            titleVisibility: .visible) {
+            Button("Excluir", role: .destructive) {
+                Task { await feedManager.deletePost(post) }
+            }
+        }
+        .onAppear {
+            isVerifiedLive = post.isVerified
+            // Busca em tempo real
+            let db = Firestore.firestore()
+            db.collection("users").document(post.userID)
+                .addSnapshotListener { snapshot, _ in
+                    if let data = snapshot?.data() {
+                        isVerifiedLive = data["isVerified"] as? Bool ?? false
+                    }
+                }
+        }
+    }
+    
+    // MARK: - Header
+    
+    var headerRow: some View {
+        HStack(spacing: 10) {
+            // Avatar clicável
+            Button {
+                showPublicProfile = true
+            } label: {
+                AvatarView(url: post.userAvatarURL, size: 40)
+                    .overlay(
+                        Circle().stroke(
+                            LinearGradient(colors: [.green, .mint],
+                                           startPoint: .topLeading,
+                                           endPoint: .bottomTrailing),
+                            lineWidth: 2
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
+            
+            // Nome clicável
+            Button {
+                showPublicProfile = true
+            } label: {
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 4) {
+                        Text(post.username.isEmpty ? post.userName : post.username)
+                            .font(.subheadline).fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        if isVerifiedLive{
+                            VerifiedBadge(size: 13)
+                        }
+                    }
+                    HStack(spacing: 4) {
+                        if !post.city.isEmpty {
+                            Image(systemName: "mappin.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.secondary)
+                            Text(post.city)
+                                .font(.caption).foregroundStyle(.secondary)
+                            if let dist = post.distanceKm {
+                                Text("· \(formatDistance(dist))")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            
+            Spacer()
+            
+            HStack(spacing: 10) {
+                // Botão seguir — só para posts de outros
+                if !isOwnPost {
+                    Button {
+                        Task { await feedManager.toggleFollow(targetID: post.userID) }
+                    } label: {
+                        if feedManager.isFollowing(post.userID) {
+                            Text("Seguindo")
+                                .font(.caption).fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 14).padding(.vertical, 6)
+                                .background(Color(.systemGray5))
+                                .clipShape(Capsule())
+                        } else {
+                            Text("+ Seguir")
+                                .font(.caption).fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 6)
+                                .background(Color.green)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // Menu
+                Menu {
+                    if isOwnPost {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Excluir post", systemImage: "trash")
+                        }
+                    } else {
+                        Button { } label: {
+                            Label("Denunciar", systemImage: "flag")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(.primary)
+                        .frame(width: 32, height: 32)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+    
+    // MARK: - Mídia
+    
+    @ViewBuilder
+    var mediaView: some View {
+        if post.mediaType == .video {
+            VideoPlayerView(url: URL(string: post.mediaURL)!)
+                .frame(maxWidth: .infinity)
+                .frame(height: UIScreen.main.bounds.width * 1.25)
+                .clipped()
+        } else {
+            WebImage(url: URL(string: post.mediaURL)) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .overlay(ProgressView())
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: UIScreen.main.bounds.width * 1.25)
+            .clipped()
+        }
+    }
+    
+    // MARK: - Ações
+    
+    var actionsRow: some View {
+        HStack(spacing: 18) {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                    isLikeAnimating = true
+                }
+                Task { await feedManager.toggleLike(post: post) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    isLikeAnimating = false
+                }
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                        .font(.system(size: 22))
+                        .foregroundStyle(post.isLiked ? .red : .primary)
+                        .scaleEffect(isLikeAnimating ? 1.35 : 1.0)
+                    Text("\(post.likesCount)")
+                        .font(.subheadline).fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                }
+            }
+            .buttonStyle(.plain)
+            
+            Button {
+                showComments = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "bubble.right")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.primary)
+                    Text("\(post.commentsCount)")
+                        .font(.subheadline).fontWeight(.medium)
+                        .foregroundStyle(.primary)
+                }
+            }
+            .buttonStyle(.plain)
+            
+            Spacer()
+            
+            Text(post.createdAt.timeAgoDisplay())
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+    }
+    
+    // MARK: - Caption
+    
+    @ViewBuilder
+    var captionRow: some View {
+        if !post.caption.isEmpty {
+            Group {
+                Text(post.username.isEmpty ? post.userName : post.username)
+                    .font(.subheadline).fontWeight(.semibold)
+                + Text(" ")
+                + Text(showFullCaption ? post.caption : String(post.caption.prefix(80)))
+                    .font(.subheadline)
+                + (post.caption.count > 80 && !showFullCaption
+                   ? Text("... mais").font(.subheadline).foregroundColor(.secondary)
+                   : Text(""))
+            }
+            .onTapGesture {
+                if post.caption.count > 80 {
+                    withAnimation { showFullCaption.toggle() }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 14)
+        } else {
+            Color.clear.frame(height: 8)
+        }
+    }
+    
+    func formatDistance(_ km: Double) -> String {
+        if km < 1 { return "< 1km" }
+        if km < 100 { return "\(Int(km))km" }
+        return "\(Int(km / 100) * 100)km+"
+    }
+}
+    
+    // MARK: - Componentes auxiliares
+
+    struct VideoPlayerView: UIViewControllerRepresentable {
+        let url: URL
+
+        func makeUIViewController(context: Context) -> AVPlayerViewController {
+            let controller = AVPlayerViewController()
+            let player = AVPlayer(url: url)
+            controller.player = player
+            controller.showsPlaybackControls = true
+            return controller
+        }
+
+        func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {}
+    }
+
+struct AvatarView: View {
+    let url: String
+    let size: CGFloat
+
+    var body: some View {
+        Group {
+            if url.isEmpty {
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [.green, .mint],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .foregroundStyle(.white)
+                            .font(.system(size: size * 0.45))
+                    )
+            } else {
+                WebImage(url: URL(string: url)) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Circle().fill(Color(.systemGray5))
+                }
+                .clipShape(Circle())
+            }
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+    extension Date {
+        func timeAgoDisplay() -> String {
+            let now = Date()
+            let components = Calendar.current.dateComponents(
+                [.minute, .hour, .day, .weekOfYear],
+                from: self, to: now
+            )
+            if let weeks = components.weekOfYear, weeks > 0 { return "\(weeks)s" }
+            if let days = components.day, days > 0 { return "\(days)d" }
+            if let hours = components.hour, hours > 0 { return "\(hours)h" }
+            if let minutes = components.minute, minutes > 0 { return "\(minutes)m" }
+            return "agora"
+        }
+    }
+

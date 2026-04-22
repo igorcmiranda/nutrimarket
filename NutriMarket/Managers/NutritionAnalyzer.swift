@@ -60,10 +60,10 @@ class NutritionAnalyzer {
 
         // Log para debug
         if let httpResponse = response as? HTTPURLResponse {
-            print("Status HTTP: \(httpResponse.statusCode)")
+            // // print("Status HTTP: \(httpResponse.statusCode)")
         }
         if let rawString = String(data: data, encoding: .utf8) {
-            print("Resposta bruta: \(rawString)")
+            // // print("Resposta bruta: \(rawString)")
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -72,7 +72,7 @@ class NutritionAnalyzer {
             throw AnalyzerError.parseFailed
         }
 
-        print("Texto do Claude: \(text)")
+        // // print("Texto do Claude: \(text)")
 
         // Remove markdown se vier
         let cleanText = text
@@ -89,7 +89,7 @@ class NutritionAnalyzer {
             jsonText = cleanText
         }
 
-        print("JSON limpo: \(jsonText)")
+        // // print("JSON limpo: \(jsonText)")
 
         guard let jsonData = jsonText.data(using: .utf8),
               let result = try? JSONDecoder().decode(NutritionResponse.self, from: jsonData) else {

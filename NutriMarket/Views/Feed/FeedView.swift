@@ -1,0 +1,158 @@
+import SwiftUI
+import CoreLocation
+
+struct FeedView: View {
+    @EnvironmentObject var feedManager: FeedManager
+    @EnvironmentObject var subscriptionManager: SubscriptionManager
+    @EnvironmentObject var authManager: AuthManager
+    @StateObject private var locationManager = FeedLocationManager()
+    @State private var showNewPost = false
+    @State private var showPaywall = false
+    @Binding var showSubscription: Bool
+
+    var body: some View {
+        ZStack {
+            Color(.systemGray6).ignoresSafeArea()
+
+            if feedManager.isLoading {
+                loadingView
+            } else if feedManager.posts.isEmpty {
+                emptyView
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(feedManager.posts) { post in
+                            PostCardView(post: post, showSubscription: $showSubscription)
+                                .environmentObject(feedManager)
+                                .environmentObject(authManager)
+                            Rectangle()
+                                .fill(Color(.systemGray6))
+                                .frame(height: 8)
+                                .onAppear {
+                                    // Carrega mais quando chegar nos últimos 3 posts
+                                    if post.id == feedManager.posts.suffix(3).first?.id {
+                                        Task { await feedManager.loadMorePosts() }
+                                    }
+                                }
+                        }
+
+                        if feedManager.isLoadingMore {
+                            ProgressView()
+                                .padding()
+                        }
+                    }
+                }
+                .background(Color(.systemGray6))
+                .refreshable {
+                    await feedManager.loadFeed(userLocation: locationManager.lastLocation)
+                }
+            }
+
+            // Botão novo post
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button {
+                        if subscriptionManager.currentPlan != .none {
+                            showNewPost = true
+                        } else {
+                            showPaywall = true
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.title2).fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .frame(width: 56, height: 56)
+                            .background(
+                                LinearGradient(
+                                    colors: [.green, .mint],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Circle())
+                            .shadow(color: .green.opacity(0.4), radius: 8, y: 4)
+                    }
+                    .padding()
+                }
+            }
+
+            if feedManager.isUploading {
+                uploadingOverlay
+            }
+        }
+        .navigationTitle("Feed")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    MessagesView()
+                        .environmentObject(authManager)
+                } label: {
+                    Image(systemName: "paperplane")
+                        .font(.system(size: 18))
+                }
+            }
+        }
+        .sheet(isPresented: $showNewPost) {
+            NewPostView(showSubscription: $showSubscription)
+                .environmentObject(feedManager)
+                .environmentObject(authManager)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView(
+                requiredPlan: .starter,
+                featureName: "Publicar no feed",
+                showSubscription: $showSubscription
+            )
+        }
+        .onAppear {
+            locationManager.requestLocation()
+            Task {
+                await feedManager.loadFeed(userLocation: locationManager.lastLocation)
+            }
+        }
+    }
+
+    var loadingView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            ProgressView().scaleEffect(1.5)
+            Text("Carregando feed...")
+                .font(.subheadline).foregroundStyle(.secondary)
+            Spacer()
+        }
+    }
+
+    var emptyView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 52))
+                .foregroundStyle(.secondary)
+            Text("Nenhuma publicação ainda")
+                .font(.headline)
+            Text("Seja o primeiro a compartilhar!")
+                .font(.subheadline).foregroundStyle(.secondary)
+            Spacer()
+        }
+    }
+
+    var uploadingOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.4).ignoresSafeArea()
+            VStack(spacing: 16) {
+                ProgressView(value: feedManager.uploadProgress)
+                    .progressViewStyle(.circular)
+                    .scaleEffect(1.5)
+                    .tint(.white)
+                Text("Publicando... \(Int(feedManager.uploadProgress * 100))%")
+                    .font(.headline).foregroundStyle(.white)
+            }
+            .padding(32)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+}

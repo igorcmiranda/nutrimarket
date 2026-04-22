@@ -6,81 +6,91 @@ struct LoginView: View {
     @State private var password = ""
     @State private var showRegister = false
     @State private var showResetPassword = false
-    @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
             ZStack {
+                // Fundo escuro
                 LinearGradient(
-                    colors: [Color(.systemBackground), Color(.systemGray6)],
-                    startPoint: .top, endPoint: .bottom
+                    colors: [
+                        Color(hex: "080818"),
+                        Color(hex: "0D0D2B"),
+                        Color(hex: "080818")
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
                 .ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 32) {
 
-                        // Logo
-                        VStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(LinearGradient(
-                                        colors: [.green, .mint],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 90, height: 90)
-                                Image(systemName: "fork.knife")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(.white)
-                            }
-                            Text("Nutri-Market")
-                                .font(.title).fontWeight(.bold)
-                            Text("Seu assistente nutricional inteligente")
-                                .font(.subheadline).foregroundStyle(.secondary)
+                        // Logo e nome
+                        VStack(spacing: 16) {
+                            Image("AppLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 22))
+                                .shadow(color: Color(hex: "4A6FE8").opacity(0.7), radius: 24)
+                                .padding(.top, 60)
+
+                            Text("Vyro")
+                                .font(.system(size: 38, weight: .black, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color(hex: "A78BFA"), Color(hex: "60A5FA")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+
+                            Text("Melhore sua vida fitness!")
+                                .font(.subheadline)
+                                .foregroundStyle(Color(hex: "8B9CC8"))
                         }
-                        .padding(.top, 48)
 
                         // Formulário
-                        VStack(spacing: 16) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Email")
-                                    .font(.caption).fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
-                                TextField("seu@email.com", text: $email)
-                                    .keyboardType(.emailAddress)
-                                    .autocapitalization(.none)
-                                    .padding()
-                                    .background(Color(.systemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(.systemGray4), lineWidth: 0.5)
-                                    )
-                            }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Email ou @usuário")
+                                .font(.caption).fontWeight(.medium)
+                                .foregroundStyle(Color(hex: "8B9CC8"))
+                            TextField("seu@email.com ou @seuusuario", text: $email)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .autocorrectionDisabled()
+                                .foregroundStyle(.white)
+                                .padding()
+                                .background(Color(hex: "1A1A3E"))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(hex: "3D4A8A"), lineWidth: 1)
+                                )
+                        }
 
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Senha")
                                     .font(.caption).fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color(hex: "8B9CC8"))
                                 SecureField("••••••••", text: $password)
+                                    .foregroundStyle(.white)
                                     .padding()
-                                    .background(Color(.systemBackground))
+                                    .background(Color(hex: "1A1A3E"))
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(.systemGray4), lineWidth: 0.5)
+                                            .stroke(Color(hex: "3D4A8A"), lineWidth: 1)
                                     )
                             }
 
-                            // Esqueceu a senha
                             HStack {
                                 Spacer()
                                 Button("Esqueceu a senha?") {
                                     showResetPassword = true
                                 }
                                 .font(.caption)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Color(hex: "60A5FA"))
                             }
 
                             // Erro
@@ -89,11 +99,10 @@ struct LoginView: View {
                                     Image(systemName: "exclamationmark.circle.fill")
                                         .foregroundStyle(.red)
                                     Text(authManager.errorMessage)
-                                        .font(.caption)
-                                        .foregroundStyle(.red)
+                                        .font(.caption).foregroundStyle(.red)
                                 }
                                 .padding()
-                                .background(Color.red.opacity(0.08))
+                                .background(Color.red.opacity(0.1))
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
                             }
 
@@ -106,18 +115,20 @@ struct LoginView: View {
                                         ProgressView().tint(.white).scaleEffect(0.8)
                                     }
                                     Text("Entrar")
-                                        .fontWeight(.medium)
+                                        .fontWeight(.bold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(
                                     LinearGradient(
-                                        colors: [.green, .mint],
-                                        startPoint: .leading, endPoint: .trailing
+                                        colors: [Color(hex: "4A6FE8"), Color(hex: "7B5FDC")],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
                                     )
                                 )
                                 .foregroundStyle(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .shadow(color: Color(hex: "4A6FE8").opacity(0.4), radius: 10, y: 4)
                             }
                             .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
                             .opacity(email.isEmpty || password.isEmpty ? 0.6 : 1)
@@ -125,31 +136,46 @@ struct LoginView: View {
                         .padding(.horizontal)
 
                         // Cadastro
-                        VStack(spacing: 8) {
-                            Divider()
+                        VStack(spacing: 12) {
+                            HStack {
+                                Rectangle()
+                                    .fill(Color(hex: "2A2A4A"))
+                                    .frame(height: 1)
+                                Text("ou")
+                                    .font(.caption)
+                                    .foregroundStyle(Color(hex: "8B9CC8"))
+                                    .padding(.horizontal, 8)
+                                Rectangle()
+                                    .fill(Color(hex: "2A2A4A"))
+                                    .frame(height: 1)
+                            }
+
                             Button {
                                 showRegister = true
                             } label: {
                                 HStack(spacing: 4) {
                                     Text("Novo por aqui?")
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color(hex: "8B9CC8"))
                                     Text("Cadastre-se")
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(.green)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(Color(hex: "60A5FA"))
                                 }
                                 .font(.subheadline)
                             }
                         }
-                        .padding(.bottom, 32)
+                        .padding(.horizontal)
+                        .padding(.bottom, 40)
                     }
                 }
             }
             .sheet(isPresented: $showRegister) {
                 RegisterView()
+                    .environmentObject(authManager)
             }
             .sheet(isPresented: $showResetPassword) {
                 ResetPasswordView()
+                    .environmentObject(authManager)
             }
         }
     }
-}
+

@@ -60,7 +60,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
         // Chamado quando o WebView termina de carregar qualquer página
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             let currentURL = webView.url?.absoluteString ?? ""
-            print("✅ Stripe página carregada: \(currentURL)")
+            // // print("✅ Stripe página carregada: \(currentURL)")
 
             checkForSuccess(url: currentURL, webView: webView)
         }
@@ -69,7 +69,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             let urlString = navigationAction.request.url?.absoluteString ?? ""
-            print("🔗 Stripe navegando para: \(urlString)")
+            // // print("🔗 Stripe navegando para: \(urlString)")
             checkForSuccess(url: urlString, webView: nil)
             decisionHandler(.allow)
         }
@@ -78,7 +78,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
                      decidePolicyFor navigationResponse: WKNavigationResponse,
                      decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
             let urlString = navigationResponse.response.url?.absoluteString ?? ""
-            print("📄 Stripe resposta de: \(urlString)")
+            // // print("📄 Stripe resposta de: \(urlString)")
             checkForSuccess(url: urlString, webView: nil)
             decisionHandler(.allow)
         }
@@ -101,7 +101,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
             let urlLower = url.lowercased()
             if successIndicators.contains(where: { urlLower.contains($0) }) {
                 successDetected = true
-                print("🎉 Sucesso detectado na URL: \(url)")
+                // // print("🎉 Sucesso detectado na URL: \(url)")
                 let sessionID = extractSessionID(from: url) ?? UUID().uuidString
                 DispatchQueue.main.async {
                     self.onSuccess(self.plan, sessionID)
@@ -112,12 +112,12 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
             // Verifica o título da página para detectar sucesso
             webView?.evaluateJavaScript("document.title") { result, _ in
                 if let title = result as? String {
-                    print("📋 Título da página: \(title)")
+                    // // print("📋 Título da página: \(title)")
                     let titleLower = title.lowercased()
                     let titleSuccessIndicators = ["success", "confirmed", "thank", "obrigado", "confirmado", "aprovado"]
                     if titleSuccessIndicators.contains(where: { titleLower.contains($0) }) && !self.successDetected {
                         self.successDetected = true
-                        print("🎉 Sucesso detectado no título: \(title)")
+                        // // print("🎉 Sucesso detectado no título: \(title)")
                         DispatchQueue.main.async {
                             self.onSuccess(self.plan, UUID().uuidString)
                         }
@@ -140,7 +140,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
                     ]
                     if contentSuccessIndicators.contains(where: { textLower.contains($0) }) && !self.successDetected {
                         self.successDetected = true
-                        print("🎉 Sucesso detectado no conteúdo da página")
+                        // // print("🎉 Sucesso detectado no conteúdo da página")
                         DispatchQueue.main.async {
                             self.onSuccess(self.plan, UUID().uuidString)
                         }
@@ -151,7 +151,7 @@ struct StripeWebViewRepresentable: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
-            print("📨 Mensagem JS: \(message.body)")
+            // // print("📨 Mensagem JS: \(message.body)")
         }
 
         func extractSessionID(from url: String) -> String? {

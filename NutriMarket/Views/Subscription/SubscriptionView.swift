@@ -114,11 +114,11 @@ struct SubscriptionView: View {
                         url: url,
                         plan: selectedPlan,
                         onSuccess: { plan, sessionID in
-                            print("🎯 onSuccess chamado — plano: \(plan.rawValue), sessionID: \(sessionID)")
+                            // // print("🎯 onSuccess chamado — plano: \(plan.rawValue), sessionID: \(sessionID)")
                             Task {
-                                print("💾 Chamando savePlan...")
+                                // // print("💾 Chamando savePlan...")
                                 await subscriptionManager.savePlan(plan, sessionID: sessionID)
-                                print("✅ savePlan concluído — plano atual: \(subscriptionManager.currentPlan.rawValue)")
+                                // // print("✅ savePlan concluído — plano atual: \(subscriptionManager.currentPlan.rawValue)")
                                 dismiss()
                             }
                         },

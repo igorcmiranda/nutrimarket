@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseStorage
 
 @MainActor
 class AuthManager: ObservableObject {
@@ -28,6 +29,39 @@ class AuthManager: ObservableObject {
             }
         }
     }
+    
+    func uploadAvatar(image: UIImage) async {
+        guard let uid = Auth.auth().currentUser?.uid,
+              let data = image.jpegData(compressionQuality: 0.7) else { return }
+
+        let ref = Storage.storage().reference().child("avatars/\(uid)/avatar.jpg")
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+
+        do {
+            _ = try await ref.putDataAsync(data, metadata: metadata)
+            let url = try await ref.downloadURL()
+
+            try await Firestore.firestore().collection("users").document(uid).updateData([
+                "avatarURL": url.absoluteString
+            ])
+
+            if var user = currentUser {
+                currentUser = AppUser(
+                    uid: user.uid,
+                    name: user.name,
+                    email: user.email,
+                    avatarURL: url.absoluteString,
+                    username: user.username,
+                    isAdmin: user.isAdmin,
+                    isVerified: user.isVerified,
+                    createdAt: user.createdAt
+                )
+            }
+        } catch {
+            errorMessage = "Erro ao atualizar foto: \(error.localizedDescription)"
+        }
+    }
 
     func fetchUserProfile(uid: String) async {
         do {
@@ -37,7 +71,10 @@ class AuthManager: ObservableObject {
                     uid: uid,
                     name: data["name"] as? String ?? "",
                     email: data["email"] as? String ?? "",
+                    avatarURL: data["avatarURL"] as? String ?? "",
+                    username: data["username"] as? String ?? "",
                     isAdmin: data["isAdmin"] as? Bool ?? false,
+                    isVerified: data["isVerified"] as? Bool ?? false,
                     createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
                 )
             }
@@ -50,33 +87,62 @@ class AuthManager: ObservableObject {
     func login(email: String, password: String) async {
         isLoading = true
         errorMessage = ""
+
+        var loginEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Se não contém @, trata como username e busca o email
+        if !loginEmail.contains("@") {
+            if let fetchedEmail = await fetchEmailByUsername(loginEmail) {
+                loginEmail = fetchedEmail
+            } else {
+                errorMessage = "Usuário não encontrado"
+                isLoading = false
+                return
+            }
+        }
+
         do {
-            try await Auth.auth().signIn(withEmail: email, password: password)
+            try await Auth.auth().signIn(withEmail: loginEmail, password: password)
+            if let uid = Auth.auth().currentUser?.uid {
+                await fetchUserProfile(uid: uid)
+            }
         } catch {
             errorMessage = friendlyError(error)
             isLoading = false
         }
     }
 
-    func register(name: String, email: String, password: String) async {
+    func register(name: String, email: String, password: String,
+                  username: String, referralCode: String? = nil) async {
         isLoading = true
         errorMessage = ""
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let uid = result.user.uid
 
-            try await db.collection("users").document(uid).setData([
+            var userData: [String: Any] = [
                 "name": name,
                 "email": email,
+                "username": username,
                 "isAdmin": false,
+                "isVerified": false,
                 "createdAt": Timestamp(date: Date()),
                 "weight": 0,
                 "height": 0,
                 "age": 0,
                 "sex": "Masculino",
-                "goal": "Manter peso"
-            ])
+                "goal": "Manter peso",
+                "avatarURL": "",
+                "followersCount": 0,
+                "showOnLeaderboard": false
+            ]
 
+            // Salva indicação se válida
+            if let code = referralCode {
+                userData["referredBy"] = code
+            }
+
+            try await db.collection("users").document(uid).setData(userData)
             await fetchUserProfile(uid: uid)
         } catch {
             errorMessage = friendlyError(error)
@@ -114,6 +180,14 @@ class AuthManager: ObservableObject {
             errorMessage = "Erro ao salvar perfil: \(error.localizedDescription)"
         }
     }
+    
+    func fetchEmailByUsername(_ username: String) async -> String? {
+        let snapshot = try? await db.collection("users")
+            .whereField("username", isEqualTo: username.lowercased())
+            .limit(to: 1)
+            .getDocuments()
+        return snapshot?.documents.first?.data()["email"] as? String
+    }
 
     var isLoggedIn: Bool { currentUser != nil }
 
@@ -142,6 +216,9 @@ struct AppUser {
     let uid: String
     let name: String
     let email: String
+    let avatarURL: String
+    let username: String  // novo
     let isAdmin: Bool
+    let isVerified: Bool
     let createdAt: Date
 }

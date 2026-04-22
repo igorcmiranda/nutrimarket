@@ -12,8 +12,9 @@ class GlassesManager: ObservableObject {
     @Published var statusMessage = "Aguardando conexão..."
     @Published var isAnalyzing = false
     @Published var lastFrame: UIImage?
+    var isConfigured = false
 
-    private var streamSession: StreamSession?
+    private var deviceSession: DeviceSession?
     private var stateToken: Any?
     private var frameToken: Any?
     private var lastCaptureTime: Date = .distantPast
@@ -22,23 +23,24 @@ class GlassesManager: ObservableObject {
     var onFrameCaptured: ((UIImage) -> Void)?
 
     func setup() {
+        guard !isConfigured else { return }
         do {
             try Wearables.configure()
+            isConfigured = true
+            startRegistration()
         } catch {
             statusMessage = "Erro ao configurar SDK: \(error)"
-            return
-        }
-        Task {
-            await startRegistration()
         }
     }
 
-    func startRegistration() async {
-        do {
-            try await Wearables.shared.startRegistration()
-            await observeDevices()
-        } catch {
-            statusMessage = "Erro no registro: \(error)"
+    func startRegistration() {
+        Task { @MainActor in
+            do {
+                try await Wearables.shared.startRegistration()
+                await self.observeDevices()
+            } catch {
+                self.statusMessage = "Erro no registro: \(error)"
+            }
         }
     }
 
@@ -52,64 +54,16 @@ class GlassesManager: ObservableObject {
     }
 
     func startStream() async {
-        do {
-            let status = try await Wearables.shared.checkPermissionStatus(.camera)
-            if status != .granted {
-                _ = try await Wearables.shared.requestPermission(.camera)
-            }
-        } catch {
-            statusMessage = "Erro de permissão: \(error)"
-            return
-        }
-
-        let config = StreamSessionConfig(
-            videoCodec: .raw,
-            resolution: .medium,
-            frameRate: 7
-        )
-        let deviceSelector = AutoDeviceSelector(wearables: Wearables.shared)
-        let session = StreamSession(
-            streamSessionConfig: config,
-            deviceSelector: deviceSelector
-        )
-
-        stateToken = session.statePublisher.listen { [weak self] state in
-            Task { @MainActor in
-                switch state {
-                case .streaming:
-                    self?.isStreaming = true
-                    self?.statusMessage = "Câmera ativa"
-                case .stopped, .stopping:
-                    self?.isStreaming = false
-                    self?.statusMessage = "Câmera pausada"
-                case .waitingForDevice:
-                    self?.statusMessage = "Aguardando óculos..."
-                default:
-                    break
-                }
-            }
-        }
-
-        frameToken = session.videoFramePublisher.listen { [weak self] frame in
-            guard let self, let image = frame.makeUIImage() else { return }
-            let now = Date()
-            Task { @MainActor in
-                guard now.timeIntervalSince(self.lastCaptureTime) >= self.captureInterval else { return }
-                self.lastCaptureTime = now
-                self.lastFrame = image
-                self.onFrameCaptured?(image)
-            }
-        }
-
-        streamSession = session
-        await session.start()
+        // Stream não disponível nesta versão da SDK
+        // StreamSession não tem inicializador público
+        statusMessage = "Stream não suportado nesta versão da SDK"
+        // print("⚠️ StreamSession não tem inicializador público na SDK atual")
     }
 
     func stopStream() {
-        Task {
-            await streamSession?.stop()
-            isStreaming = false
-        }
+        deviceSession?.stop()
+        isStreaming = false
+        statusMessage = "Câmera pausada"
     }
 
     func handleURL(_ url: URL) async {

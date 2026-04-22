@@ -336,7 +336,7 @@ struct DietPlanView: View {
 
     func generatePlan() async {
         guard usageManager.canGenerateDiet else {
-            print("Limite de dietas atingido")
+            // // print("Limite de dietas atingido")
             return
         }
 
@@ -349,7 +349,7 @@ struct DietPlanView: View {
             await usageManager.incrementDietPlan()
             selectedTab = 2
         } catch {
-            print("Erro ao gerar plano: \(error)")
+            // // print("Erro ao gerar plano: \(error)")
         }
         isGenerating = false
     }

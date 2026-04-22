@@ -336,7 +336,7 @@ struct BodyAnalysisView: View {
             isGeneratingWorkout = false
 
         } catch {
-            print("Erro na análise: \(error)")
+            // // print("Erro na análise: \(error)")
             isAnalyzing = false
             isGeneratingWorkout = false
         }

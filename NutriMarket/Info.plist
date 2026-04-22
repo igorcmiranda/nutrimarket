@@ -2,40 +2,40 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleURLTypes</key>
-    <array>
-      <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>CFBundleURLName</key>
-        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-          <string>nutrimarket</string>
-        </array>
-      </dict>
-    </array>
-    <key>UISupportedExternalAccessoryProtocols</key>
-    <array>
-      <string>com.meta.ar.wearable</string>
-    </array>
-    <key>UIBackgroundModes</key>
-    <array>
-      <string>bluetooth-peripheral</string>
-      <string>external-accessory</string>
-    </array>
-    <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>Necessário para conectar aos óculos Meta</string>
-    <key>NSCameraUsageDescription</key>
-    <string>Necessário para fotografar refeições e analisar nutrição</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>Necessário para selecionar fotos de refeições e análise corporal</string>
-    <key>MWDAT</key>
-    <dict>
-      <key>AppLinkURLScheme</key>
-      <string>nutrimarket://</string>
-      <key>MetaAppID</key>
-      <string></string>
-    </dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nutrimarket</string>
+			</array>
+		</dict>
+	</array>
+	<key>MWDAT</key>
+	<dict>
+		<key>AppLinkURLScheme</key>
+		<string>nutrimarket://</string>
+		<key>MetaAppID</key>
+		<string></string>
+	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-peripheral</string>
+		<string>external-accessory</string>
+	</array>
+	<key>UISupportedExternalAccessoryProtocols</key>
+	<array>
+		<string>com.meta.ar.wearable</string>
+	</array>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Usado para acompanhar seu gasto calórico e progresso nos desafios</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Usado para registrar seus treinos no app</string>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
 </dict>
 </plist>

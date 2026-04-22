@@ -75,7 +75,7 @@ class UsageManager: ObservableObject {
                 await saveCounters()
             }
         } catch {
-            print("Erro ao carregar contadores: \(error)")
+            // // print("Erro ao carregar contadores: \(error)")
         }
 
         isLoading = false
@@ -114,7 +114,7 @@ class UsageManager: ObservableObject {
             ]
             try await db.collection("usage").document(uid).setData(data)
         } catch {
-            print("Erro ao salvar contadores: \(error)")
+            // // print("Erro ao salvar contadores: \(error)")
         }
     }
 }

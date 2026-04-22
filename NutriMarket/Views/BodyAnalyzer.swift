@@ -102,7 +102,7 @@ class BodyAnalyzer {
 
         // DEBUG: ver resposta crua
         if let rawResponse = String(data: data, encoding: .utf8) {
-            print("🔎 Resposta API:\n", rawResponse)
+            // // print("🔎 Resposta API:\n", rawResponse)
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -121,8 +121,8 @@ class BodyAnalyzer {
             let result = try JSONDecoder().decode(BodyAnalysisResult.self, from: jsonData)
             return result
         } catch {
-            print("❌ Erro ao decodificar:", error)
-            print("JSON recebido:", cleanedJSON)
+            // // print("❌ Erro ao decodificar:", error)
+            // // print("JSON recebido:", cleanedJSON)
             throw AnalyzerError.parseFailed
         }
     }

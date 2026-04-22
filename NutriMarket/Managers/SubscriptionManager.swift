@@ -15,9 +15,9 @@ class SubscriptionManager: ObservableObject {
     // A cobrança acontece pelo Payment Link
 
     // Payment Links de TESTE
-    let starterURL  = "https://buy.stripe.com/test_aFa3cvg6R3hL0zs9JN7ok02"
-    let standardURL = "https://buy.stripe.com/test_6oU6oH8Ep05z0zs8FJ7ok01"
-    let premiumURL  = "https://buy.stripe.com/test_28E9AT4o905z1Dw9JN7ok00"
+    let starterURL  = "https://buy.stripe.com/8x2fZjgGcbx457B35FcQU01"
+    let standardURL = "https://buy.stripe.com/aFaaEZgGc7gO43x9u3cQU02"
+    let premiumURL  = "https://buy.stripe.com/00w8wRgGcfNkfMfdKjcQU00"
 
     func loadSubscription() async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
@@ -40,20 +40,20 @@ class SubscriptionManager: ObservableObject {
                 }
             }
         } catch {
-            print("Erro ao carregar assinatura: \(error)")
+            // // print("Erro ao carregar assinatura: \(error)")
         }
         isLoading = false
     }
 
     func savePlan(_ plan: SubscriptionPlan, sessionID: String) async {
-        print("💾 Tentando salvar plano: \(plan.rawValue)")
+        // // print("💾 Tentando salvar plano: \(plan.rawValue)")
         
         guard let uid = Auth.auth().currentUser?.uid else {
-            print("❌ Erro: usuário não autenticado")
+            // // print("❌ Erro: usuário não autenticado")
             return
         }
         
-        print("👤 UID do usuário: \(uid)")
+        // // print("👤 UID do usuário: \(uid)")
         
         let endDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
 
@@ -65,11 +65,42 @@ class SubscriptionManager: ObservableObject {
                 "endDate": Timestamp(date: endDate),
                 "updatedAt": Timestamp(date: Date())
             ])
-            print("✅ Plano salvo no Firestore com sucesso!")
+            // // print("✅ Plano salvo no Firestore com sucesso!")
             currentPlan = plan
             subscriptionEndDate = endDate
         } catch {
-            print("❌ Erro ao salvar no Firestore: \(error)")
+            // // print("❌ Erro ao salvar no Firestore: \(error)")
+        }
+    }
+    
+    func cancelSubscription() async -> Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
+
+        do {
+            // Busca o ID da assinatura no Firestore
+            let doc = try await db.collection("subscriptions").document(uid).getDocument()
+            guard let data = doc.data(),
+                  let sessionID = data["stripeSessionID"] as? String else {
+                // Se não tem ID do Stripe, apenas limpa o plano local
+                currentPlan = .none
+                try await db.collection("subscriptions").document(uid).updateData([
+                    "plan": "none",
+                    "cancelledAt": Timestamp(date: Date())
+                ])
+                return true
+            }
+
+            // Atualiza no Firestore
+            currentPlan = .none
+            subscriptionEndDate = nil
+            try await db.collection("subscriptions").document(uid).updateData([
+                "plan": "none",
+                "cancelledAt": Timestamp(date: Date())
+            ])
+            return true
+        } catch {
+            // // print("Erro ao cancelar assinatura: \(error)")
+            return false
         }
     }
 

@@ -1,10 +1,14 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct HomeView: View {
     @EnvironmentObject var profile: UserProfile
     @EnvironmentObject var glasses: GlassesManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @EnvironmentObject var usageManager: UsageManager
+    @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var feedManager: FeedManager
+    @EnvironmentObject var trophyManager: TrophyManager
     @Binding var showSubscription: Bool
 
     @State private var entries: [MealEntry] = []
@@ -15,6 +19,11 @@ struct HomeView: View {
     @State private var showCameraPicker = false
     @State private var cameraImage: UIImage?
     @State private var showPaywall = false
+    
+    @State private var showDiet = false
+    @State private var showBody = false
+    @State private var showWater = false
+    @State private var showUsage = false
 
     private let speech = SpeechManager()
     private let analyzer = NutritionAnalyzer(apiKey: Secrets.claudeAPIKey)
@@ -38,10 +47,11 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     headerCard
+                    quickNavBar
                     progressCard
                     macrosSummaryCard
-                    usageCard
                     cameraCard
+                    myPostsCard
                     if !todayEntries.isEmpty {
                         recentMealsCard
                     }
@@ -53,7 +63,7 @@ struct HomeView: View {
                 analyzingOverlay
             }
         }
-        .navigationTitle("Nutri-Market")
+        .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -81,6 +91,33 @@ struct HomeView: View {
                 Task { await handleFrame(image) }
             }
         }
+        .sheet(isPresented: $showDiet) {
+            NavigationStack {
+                DietPlanView(showSubscription: $showSubscription)
+                    .environmentObject(profile)
+                    .environmentObject(usageManager)
+                    .environmentObject(subscriptionManager)
+            }
+        }
+        .sheet(isPresented: $showBody) {
+            NavigationStack {
+                BodyAnalysisView(showSubscription: $showSubscription)
+                    .environmentObject(profile)
+                    .environmentObject(usageManager)
+                    .environmentObject(subscriptionManager)
+            }
+        }
+        .sheet(isPresented: $showWater) {
+            NavigationStack {
+                WaterView()
+                    .environmentObject(profile)
+            }
+        }
+        .sheet(isPresented: $showUsage) {
+            UsageDetailView()
+                .environmentObject(usageManager)
+                .environmentObject(subscriptionManager)
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView(
                 requiredPlan: .starter,
@@ -107,17 +144,8 @@ struct HomeView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(
-                        colors: [.green, .mint],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 48, height: 48)
-                Image(systemName: "fork.knife")
-                    .foregroundStyle(.white)
-                    .font(.title3)
-            }
+            ProfileAvatarButton()
+                .environmentObject(authManager)
         }
         .padding()
         .background(Color(.systemBackground))
@@ -173,126 +201,193 @@ struct HomeView: View {
         }
     }
     
-    var usageCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Uso hoje", systemImage: "chart.bar.fill")
-                .font(.subheadline).fontWeight(.medium)
-
-            HStack(spacing: 8) {
-                UsageBadgeView(
-                    remaining: usageManager.remainingMealsToday,
-                    total: UsageLimits.maxMealsPerDay,
-                    label: "Refeições\nhoje",
-                    color: .green
-                )
-                UsageBadgeView(
-                    remaining: usageManager.remainingDietPlansThisMonth,
-                    total: UsageLimits.maxDietPlansPerMonth,
-                    label: "Dietas\neste mês",
-                    color: .orange
-                )
-                UsageBadgeView(
-                    remaining: usageManager.remainingBodyAnalysesThisMonth,
-                    total: UsageLimits.maxBodyAnalysesPerMonth,
-                    label: "Análises\ncorporais",
-                    color: .purple
-                )
+    var quickNavBar: some View {
+        HStack(spacing: 10) {
+            QuickNavButton(icon: "list.bullet.clipboard.fill", label: "Dieta", color: .green) {
+                showDiet = true
             }
+            QuickNavButton(icon: "figure.arms.open", label: "Corpo", color: .purple) {
+                showBody = true
+            }
+            QuickNavButton(icon: "drop.fill", label: "Água", color: .blue) {
+                showWater = true
+            }
+            QuickNavButton(icon: "chart.bar.fill", label: "Meu uso", color: .orange) {
+                showUsage = true
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+
+    var cameraCard: some View {
+        VStack(spacing: 16) {
+
+            // Header explicativo
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(
+                                colors: [.green, .mint],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 48, height: 48)
+                        Image(systemName: "camera.viewfinder")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Analisar refeição")
+                            .font(.headline)
+                        Text("Aponte para o prato e a IA identifica as macros e calorias automaticamente")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                // Como funciona
+                HStack(spacing: 12) {
+                    StepBadge(number: "1", text: "Aponte a câmera", icon: "camera")
+                    Image(systemName: "chevron.right")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    StepBadge(number: "2", text: "IA analisa", icon: "brain")
+                    Image(systemName: "chevron.right")
+                        .font(.caption2).foregroundStyle(.secondary)
+                    StepBadge(number: "3", text: "Veja as macros", icon: "chart.pie")
+                }
+            }
+            .padding()
+            .background(Color.green.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            // Botões de ação
+            VStack(spacing: 10) {
+                // Óculos Meta
+                Button {
+                    if subscriptionManager.currentPlan.canAnalyzeMeals {
+                        if glasses.isStreaming {
+                            glasses.stopStream()
+                            speech.stop()
+                        } else {
+                            if !glasses.isConfigured { glasses.setup() }
+                            Task { await glasses.startStream() }
+                        }
+                    } else {
+                        showPaywall = true
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(glasses.isStreaming
+                                      ? Color.red.opacity(0.15)
+                                      : Color.green.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: glasses.isStreaming
+                                  ? "stop.circle.fill" : "eyeglasses")
+                                .font(.title3)
+                                .foregroundStyle(glasses.isStreaming ? .red : .green)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(glasses.isStreaming ? "Parar análise" : "Usar óculos Meta")
+                                    .font(.subheadline).fontWeight(.medium)
+                                    .foregroundStyle(.primary)
+                                if !subscriptionManager.currentPlan.canAnalyzeMeals {
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
+                            Text(subscriptionManager.currentPlan.canAnalyzeMeals
+                                 ? (glasses.isConnected ? "Óculos conectado" : glasses.statusMessage)
+                                 : "Requer plano Starter ou superior")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if glasses.isConnected && subscriptionManager.currentPlan.canAnalyzeMeals {
+                            Circle().fill(.green).frame(width: 8, height: 8)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(glasses.isStreaming ? Color.red.opacity(0.3) : Color.green.opacity(0.2),
+                                    lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                // Câmera do celular
+                Button {
+                    if subscriptionManager.currentPlan.canAnalyzeMeals {
+                        showCameraPicker = true
+                    } else {
+                        showPaywall = true
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue.opacity(0.15))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "camera.fill")
+                                .font(.title3).foregroundStyle(.blue)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text("Fotografar refeição")
+                                    .font(.subheadline).fontWeight(.medium)
+                                    .foregroundStyle(.primary)
+                                if !subscriptionManager.currentPlan.canAnalyzeMeals {
+                                    Image(systemName: "lock.fill")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
+                            Text(subscriptionManager.currentPlan.canAnalyzeMeals
+                                 ? "Tire uma foto ou escolha da galeria"
+                                 : "Requer plano Starter ou superior")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+    }
+
+    var myPostsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Meu perfil", systemImage: "person.crop.rectangle.stack.fill")
+                .font(.headline)
+
+            UserProfileCardView()
+                .environmentObject(authManager)
+                .environmentObject(feedManager)
+            TrophiesView(trophies: trophyManager.trophies)
+                .environmentObject(trophyManager)
         }
         .padding()
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
-    }
-
-    var cameraCard: some View {
-        VStack(spacing: 12) {
-
-            // Botão óculos
-            Button {
-                if subscriptionManager.currentPlan.canAnalyzeMeals {
-                    if glasses.isStreaming {
-                        glasses.stopStream()
-                        speech.stop()
-                    } else {
-                        Task { await glasses.startStream() }
-                    }
-                } else {
-                    showPaywall = true
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(glasses.isStreaming ? Color.red.opacity(0.15) : Color.green.opacity(0.15))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: glasses.isStreaming ? "stop.circle.fill" : "eyeglasses")
-                            .font(.title3)
-                            .foregroundStyle(glasses.isStreaming ? .red : .green)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(glasses.isStreaming ? "Parar análise" : "Analisar com os óculos")
-                            .font(.headline).foregroundStyle(.primary)
-                        Text(subscriptionManager.currentPlan.canAnalyzeMeals
-                             ? glasses.statusMessage
-                             : "Requer plano Starter ou superior")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if !subscriptionManager.currentPlan.canAnalyzeMeals {
-                        Image(systemName: "lock.fill")
-                            .foregroundStyle(.secondary).font(.caption)
-                    } else {
-                        Circle()
-                            .fill(glasses.isConnected ? Color.green : Color.gray)
-                            .frame(width: 8, height: 8)
-                    }
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
-            }
-            .buttonStyle(.plain)
-
-            // Botão câmera do celular
-            Button {
-                if subscriptionManager.currentPlan.canAnalyzeMeals {
-                    showCameraPicker = true
-                } else {
-                    showPaywall = true
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.blue.opacity(0.15))
-                            .frame(width: 44, height: 44)
-                        Image(systemName: "camera.fill")
-                            .font(.title3)
-                            .foregroundStyle(.blue)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Analisar com a câmera")
-                            .font(.headline).foregroundStyle(.primary)
-                        Text(subscriptionManager.currentPlan.canAnalyzeMeals
-                             ? "Foto agora ou da galeria"
-                             : "Requer plano Starter ou superior")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if !subscriptionManager.currentPlan.canAnalyzeMeals {
-                        Image(systemName: "lock.fill")
-                            .foregroundStyle(.secondary).font(.caption)
-                    }
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     var recentMealsCard: some View {
@@ -345,8 +440,6 @@ struct HomeView: View {
 
     func handleFrame(_ image: UIImage) async {
         guard !isAnalyzing else { return }
-
-        // Verifica limite de uso
         guard usageManager.canAnalyzeMeal else {
             speech.speak("Você atingiu o limite de 6 análises de refeição hoje. Volte amanhã!")
             return
@@ -361,11 +454,10 @@ struct HomeView: View {
                 let audio = "\(result.description). Aproximadamente \(result.calories) calorias. Proteína: \(Int(result.protein)) gramas. \(result.tips)"
                 speech.speak(audio)
                 showAnalysis = true
-                // Incrementa contador
                 await usageManager.incrementMealAnalysis()
             }
         } catch {
-            print("Erro na análise: \(error)")
+            // // print("Erro na análise: \(error)")
         }
 
         isAnalyzing = false
@@ -403,5 +495,25 @@ struct MacroMiniCard: View {
         .padding(.vertical, 12)
         .background(color.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct StepBadge: View {
+    let number: String
+    let text: String
+    let icon: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(.green)
+            Text(text)
+                .font(.system(size: 10))
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
