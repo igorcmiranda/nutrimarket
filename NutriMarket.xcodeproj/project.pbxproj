@@ -471,6 +471,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Necessário para conectar aos óculos Meta";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Necessário para fotografar refeições e analisar nutrição";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Usado para acompanhar seu gasto calórico e progresso nos desafios";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Usado para registrar seus treinos no app";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Usamos sua localização para mostrar posts próximos a você no feed";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necessário para selecionar fotos de refeições e análise corporal";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -524,6 +526,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Necessário para conectar aos óculos Meta";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Necessário para fotografar refeições e analisar nutrição";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Usado para acompanhar seu gasto calórico e progresso nos desafios";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Usado para registrar seus treinos no app";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Usamos sua localização para mostrar posts próximos a você no feed";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necessário para selecionar fotos de refeições e análise corporal";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;

@@ -31,25 +31,21 @@
       "size" : "1024x1024"
     },
     {
-      "filename" : "icon_rounded_16x16.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
-      "filename" : "icon_rounded_32x32 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
-      "filename" : "icon_rounded_32x32.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
-      "filename" : "icon_rounded_64x64.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"

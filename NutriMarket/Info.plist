@@ -15,6 +15,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>MWDAT</key>
 	<dict>
 		<key>AppLinkURLScheme</key>
@@ -23,19 +25,10 @@
 		<string></string>
 	</dict>
 	<key>UIBackgroundModes</key>
-	<array>
-		<string>bluetooth-peripheral</string>
-		<string>external-accessory</string>
-	</array>
+	<array/>
 	<key>UISupportedExternalAccessoryProtocols</key>
 	<array>
 		<string>com.meta.ar.wearable</string>
 	</array>
-    <key>NSHealthShareUsageDescription</key>
-    <string>Usado para acompanhar seu gasto calórico e progresso nos desafios</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>Usado para registrar seus treinos no app</string>
-    <key>FirebaseAppDelegateProxyEnabled</key>
-    <false/>
 </dict>
 </plist>
