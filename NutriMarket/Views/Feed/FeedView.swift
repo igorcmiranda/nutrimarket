@@ -12,6 +12,14 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 // MARK: - FeedView
 
+enum FeedFilter: String, CaseIterable, Identifiable {
+    case global = "GLOBAL"
+    case country = "PAÍS"
+    case state = "ESTADO"
+    case city = "CIDADE"
+    var id: String { rawValue }
+}
+
 struct FeedView: View {
     @EnvironmentObject var feedManager: FeedManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
@@ -21,6 +29,8 @@ struct FeedView: View {
     @State private var showNewPost = false
     @State private var showPaywall = false
     @Binding var showSubscription: Bool
+    @State private var selectedFilter: FeedFilter = .global
+    @State private var showFilterMenu = false
     
     var body: some View {
         ZStack {
@@ -31,46 +41,92 @@ struct FeedView: View {
             } else if feedManager.posts.isEmpty {
                 emptyView
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(feedManager.posts) { post in
-                            PostCardView(post: post, showSubscription: $showSubscription)
-                                .environmentObject(feedManager)
-                                .environmentObject(authManager)
-                                .environmentObject(feedViewModel)
-                                .background(
-                                    GeometryReader { geometry in
-                                        Color.clear.preference(
-                                            key: ScrollOffsetPreferenceKey.self,
-                                            value: geometry.frame(in: .named("scroll")).minY
-                                        )
-                                    }
-                                )
-                            Rectangle()
-                                .fill(Color(.systemGray6))
-                                .frame(height: 8)
-                                .onAppear {
-                                    // Carrega mais quando chegar nos últimos 3 posts
-                                    if post.id == feedManager.posts.suffix(3).first?.id {
-                                        Task { await feedManager.loadMorePosts() }
+                VStack(spacing: 0) {
+                    // Seletor de filtro no topo
+                    HStack {
+                        Button(action: { showFilterMenu.toggle() }) {
+                            HStack(spacing: 6) {
+                                Text("Feed")
+                                    .font(.title2).fontWeight(.bold)
+                                Image(systemName: "chevron.down")
+                                    .font(.subheadline)
+                                Text("^")
+                                    .font(.title3).fontWeight(.bold)
+                                Text(selectedFilter.rawValue)
+                                    .font(.headline).fontWeight(.semibold)
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showFilterMenu, arrowEdge: .bottom) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(FeedFilter.allCases) { filter in
+                                    Button(action: {
+                                        selectedFilter = filter
+                                        showFilterMenu = false
+                                        Task { await feedManager.applyFeedFilter(filter, user: authManager.currentUser, location: locationManager.lastLocation) }
+                                    }) {
+                                        HStack {
+                                            Text(filter.rawValue)
+                                                .font(.headline)
+                                                .foregroundColor(selectedFilter == filter ? .accentColor : .primary)
+                                            if selectedFilter == filter {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                        .padding(.vertical, 8)
                                     }
                                 }
+                            }
+                            .padding()
                         }
-                        
-                        if feedManager.isLoadingMore {
-                            ProgressView()
-                                .padding()
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(feedManager.posts) { post in
+                                PostCardView(post: post, showSubscription: $showSubscription)
+                                    .environmentObject(feedManager)
+                                    .environmentObject(authManager)
+                                    //.environmentObject(feedViewModel)
+                                    .background(
+                                        GeometryReader { geometry in
+                                            Color.clear.preference(
+                                                key: ScrollOffsetPreferenceKey.self,
+                                                value: geometry.frame(in: .named("scroll")).minY
+                                            )
+                                        }
+                                    )
+                                Rectangle()
+                                    .fill(Color(.systemGray6))
+                                    .frame(height: 8)
+                                    .onAppear {
+                                        // Carrega mais quando chegar nos últimos 3 posts
+                                        if post.id == feedManager.posts.suffix(3).first?.id {
+                                            Task { await feedManager.loadMorePosts() }
+                                        }
+                                    }
+                            }
+                            
+                            if feedManager.isLoadingMore {
+                                ProgressView()
+                                    .padding()
+                            }
                         }
                     }
-                }
-                .coordinateSpace(name: "scroll")
-                .background(Color(.systemGray6))
-                .refreshable {
-                    await feedManager.loadFeed(userLocation: locationManager.lastLocation)
-                }
-                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
-                    // Atualiza o post atualmente visível baseado na posição de scroll
-                    updateCurrentlyVisiblePost(scrollOffset: offset)
+                    .coordinateSpace(name: "scroll")
+                    .background(Color(.systemGray6))
+                    .refreshable {
+                        await feedManager.loadFeed(userLocation: locationManager.lastLocation)
+                    }
+                    .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
+                        // Atualiza o post atualmente visível baseado na posição de scroll
+                        
+                    }
                 }
             }
             
@@ -190,7 +246,7 @@ private func updateCurrentlyVisiblePost(scrollOffset: CGFloat) {
         
         if feedManager.posts.indices.contains(index) {
             let visiblePost = feedManager.posts[index]
-            feedViewModel.currentlyVisiblePost = visiblePost
+            //feedViewModel.currentlyVisiblePost = visiblePost
         }
     }
 }

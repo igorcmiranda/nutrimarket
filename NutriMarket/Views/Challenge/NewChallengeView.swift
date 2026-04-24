@@ -1,4 +1,8 @@
 import SwiftUI
+import Firebase
+import FirebaseFirestore
+import Combine
+
 
 struct NewChallengeView: View {
     @EnvironmentObject var challengeManager: ChallengeManager
@@ -10,17 +14,8 @@ struct NewChallengeView: View {
     @State private var selectedUsers: [(id: String, name: String, avatar: String, isVerified: Bool)] = []
     @State private var isSending = false
     @State private var showSuccess = false
-
-    var followingUsers: [(id: String, name: String, avatar: String, isVerified: Bool)] {
-        let following = feedManager.followingIDs
-        var seen = Set<String>()
-        return feedManager.posts.compactMap { post in
-            guard following.contains(post.userID),
-                  post.userID != authManager.currentUser?.uid,
-                  seen.insert(post.userID).inserted else { return nil }
-            return (post.userID, post.userName, post.userAvatarURL, post.isVerified)
-        }
-    }
+    @State private var followingUsers: [(id: String, name: String, avatar: String, isVerified: Bool)] = []
+    @State private var isLoadingUsers = false
 
     var canSend: Bool {
         !selectedUsers.isEmpty && !isSending
@@ -46,14 +41,18 @@ struct NewChallengeView: View {
 
                 if followingUsers.isEmpty {
                     Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "person.2.slash")
-                            .font(.system(size: 44)).foregroundStyle(.secondary)
-                        Text("Você não segue ninguém ainda")
-                            .font(.headline)
-                        Text("Siga outras pessoas no feed para poder desafiá-las!")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center).padding(.horizontal)
+                    if isLoadingUsers {
+                        ProgressView("Carregando usuários...")
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "person.2.slash")
+                                .font(.system(size: 44)).foregroundStyle(.secondary)
+                            Text("Você não segue ninguém ainda")
+                                .font(.headline)
+                            Text("Siga outras pessoas no feed para poder desafiá-las!")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center).padding(.horizontal)
+                        }
                     }
                     Spacer()
                 } else {
@@ -152,6 +151,47 @@ struct NewChallengeView: View {
             }
             .onChange(of: isGroup) { _, _ in selectedUsers = [] }
         }
+        .task {
+            await loadFollowingUsers()
+        }
+    }
+
+    func loadFollowingUsers() async {
+        guard let uid = authManager.currentUser?.uid else { return }
+        isLoadingUsers = true
+        let following = Array(feedManager.followingIDs).filter { $0 != uid }
+        guard !following.isEmpty else {
+            followingUsers = []
+            isLoadingUsers = false
+            return
+        }
+
+        do {
+            let db = Firestore.firestore()
+            // Since Firestore 'in' supports up to 10, we chunk if needed
+            var allUsers: [(id: String, name: String, avatar: String, isVerified: Bool)] = []
+            let chunks = stride(from: 0, to: following.count, by: 10).map {
+                Array(following[$0..<min($0 + 10, following.count)])
+            }
+            for chunk in chunks {
+                let snapshot = try await db.collection("users")
+                    .whereField(FieldPath.documentID(), in: chunk)
+                    .getDocuments()
+                let users = snapshot.documents.compactMap { doc -> (id: String, name: String, avatar: String, isVerified: Bool)? in
+                    let data = doc.data()
+                    guard let name = data["name"] as? String else { return nil }
+                    let avatar = data["avatarURL"] as? String ?? ""
+                    let isVerified = data["isVerified"] as? Bool ?? false
+                    return (id: doc.documentID, name: name, avatar: avatar, isVerified: isVerified)
+                }
+                allUsers.append(contentsOf: users)
+            }
+            followingUsers = allUsers
+        } catch {
+            // Handle error
+            followingUsers = []
+        }
+        isLoadingUsers = false
     }
 
     func send() async {

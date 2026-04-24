@@ -27,6 +27,8 @@ struct PostCardView: View, Equatable {
     @State private var currentMediaIndex = 0
     @State private var isVisible: Bool = false
     @State private var currentVideoIndex: Int? = nil
+    @State private var isMuted: Bool = false
+    @State private var isPaused: Bool = false
 
     // No onAppear, busca o isVerified atualizado
     var isOwnPost: Bool {
@@ -49,6 +51,11 @@ struct PostCardView: View, Equatable {
             captionRow
         }
         .background(Color(.systemBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing) : Color.clear, lineWidth: post.isPinned ? 4 : 0)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18))
         // Sheets ficam no body, não dentro de sub-views
         .sheet(isPresented: $showComments) {
             CommentsView(post: post)
@@ -99,10 +106,8 @@ struct PostCardView: View, Equatable {
                 AvatarView(url: post.userAvatarURL, size: 40)
                     .overlay(
                         Circle().stroke(
-                            LinearGradient(colors: [.green, .mint],
-                                           startPoint: .topLeading,
-                                           endPoint: .bottomTrailing),
-                            lineWidth: 2
+                            post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing) : LinearGradient(colors: [.green, .mint], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            lineWidth: post.isPinned ? 3.5 : 2
                         )
                     )
             }
@@ -116,7 +121,7 @@ struct PostCardView: View, Equatable {
                     HStack(spacing: 4) {
                         Text(post.username.isEmpty ? post.userName : post.username)
                             .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
                         if isVerifiedLive{
                             VerifiedBadge(size: 13)
                         }
@@ -256,10 +261,39 @@ struct PostCardView: View, Equatable {
     @ViewBuilder
     func mediaContentView(url: String, type: Post.MediaType) -> some View {
         if type == .video {
-            VideoPlayerView(url: URL(string: url)!)
-                .frame(maxWidth: .infinity)
-                .frame(height: UIScreen.main.bounds.width * 1.25)
-                .clipped()
+            ZStack(alignment: .bottomTrailing) {
+                VideoPlayerView(url: URL(string: url)!, isAutoPlay: isVisible && !isPaused, isLoop: true, isMuted: $isMuted, isPaused: $isPaused)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: UIScreen.main.bounds.width * 1.25)
+                    .clipped()
+                    .onAppear {
+                        isVisible = true
+                    }
+                    .onDisappear {
+                        isVisible = false
+                    }
+                
+                // Overlay invisível para capturar toques e pausar/play
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isPaused.toggle()
+                    }
+                
+                // Botão de mute no canto inferior direito
+                Button {
+                    isMuted.toggle()
+                } label: {
+                    Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(Color.black.opacity(0.5))
+                        .clipShape(Circle())
+                        .padding(12)
+                }
+                .buttonStyle(.plain)
+            }
         } else {
             WebImage(url: URL(string: url)) { image in
                 image.resizable().scaledToFill()
@@ -333,9 +367,11 @@ struct PostCardView: View, Equatable {
             Group {
                 Text(post.username.isEmpty ? post.userName : post.username)
                     .font(.subheadline).fontWeight(.semibold)
+                    .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
                 + Text(" ")
                 + Text(showFullCaption ? post.caption : String(post.caption.prefix(80)))
                     .font(.subheadline)
+                    .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
                 + (post.caption.count > 80 && !showFullCaption
                    ? Text("... mais").font(.subheadline).foregroundColor(.secondary)
                    : Text(""))
@@ -365,11 +401,15 @@ struct PostCardView: View, Equatable {
         let url: URL
         var isAutoPlay: Bool = false
         var isLoop: Bool = true
+        @Binding var isMuted: Bool
+        @Binding var isPaused: Bool
         
         func makeUIViewController(context: Context) -> AVPlayerViewController {
             let controller = AVPlayerViewController()
             let player = AVPlayer(url: url)
             player.actionAtItemEnd = .none
+            player.isMuted = isMuted
+            context.coordinator.player = player
             
             // Configura loop
             if isLoop {
@@ -384,7 +424,7 @@ struct PostCardView: View, Equatable {
             controller.player = player
             controller.showsPlaybackControls = false
             
-            if isAutoPlay {
+            if isAutoPlay && !isPaused {
                 player.play()
             }
             
@@ -392,7 +432,8 @@ struct PostCardView: View, Equatable {
         }
         
         func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-            if isAutoPlay {
+            uiViewController.player?.isMuted = isMuted
+            if isAutoPlay && !isPaused {
                 uiViewController.player?.play()
             } else {
                 uiViewController.player?.pause()
@@ -405,16 +446,17 @@ struct PostCardView: View, Equatable {
         
         class Coordinator: NSObject {
             var parent: VideoPlayerView
+            var player: AVPlayer?
             
             init(_ parent: VideoPlayerView) {
                 self.parent = parent
             }
             
             @objc func playerDidFinishPlaying() {
-                // Recomeça o vídeo do início quando terminar
-                if let player = AVPlayer(url: parent.url) as AVPlayer? {
-                    player.seek(to: .zero)
-                    player.play()
+                // Recomeça o vídeo do início quando terminar, se não estiver pausado
+                if !parent.isPaused {
+                    player?.seek(to: .zero)
+                    player?.play()
                 }
             }
         }

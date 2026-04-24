@@ -2,6 +2,15 @@ import Foundation
 import Combine
 
 class UserProfile: ObservableObject {
+    @Published var country: String {
+        didSet { UserDefaults.standard.set(country, forKey: "country") }
+    }
+    @Published var region: String {
+        didSet { UserDefaults.standard.set(region, forKey: "region") }
+    }
+    @Published var city: String {
+        didSet { UserDefaults.standard.set(city, forKey: "city") }
+    }
     @Published var name: String {
         didSet { UserDefaults.standard.set(name, forKey: "name") }
     }
@@ -42,6 +51,9 @@ class UserProfile: ObservableObject {
         self.age    = UserDefaults.standard.object(forKey: "age") as? Int ?? 0
         self.sex    = UserDefaults.standard.string(forKey: "sex")  ?? "Masculino"
         self.goal   = UserDefaults.standard.string(forKey: "goal") ?? "Manter peso"
+        self.country = UserDefaults.standard.string(forKey: "country") ?? ""
+        self.region = UserDefaults.standard.string(forKey: "region") ?? ""
+        self.city = UserDefaults.standard.string(forKey: "city") ?? ""
     }
 
     var isComplete: Bool {
