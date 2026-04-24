@@ -56,7 +56,10 @@ class AuthManager: ObservableObject {
                     isAdmin: user.isAdmin,
                     isVerified: user.isVerified,
                     createdAt: user.createdAt,
-                    preferredLanguage: user.preferredLanguage
+                    preferredLanguage: user.preferredLanguage,
+                    country: user.country,
+                    region: user.region,
+                    city: user.city
                 )
             }
         } catch {
@@ -80,7 +83,10 @@ class AuthManager: ObservableObject {
                     isAdmin: data["isAdmin"] as? Bool ?? false,
                     isVerified: data["isVerified"] as? Bool ?? false,
                     createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(),
-                    preferredLanguage: data["preferredLanguage"] as? String
+                    preferredLanguage: data["preferredLanguage"] as? String,
+                    country: data["country"] as? String,
+                    region: data["region"] as? String,
+                    city: data["city"] as? String
                 )
             }
         } catch {
@@ -257,4 +263,7 @@ struct AppUser {
     let isVerified: Bool
     let createdAt: Date
     let preferredLanguage: String?
+    let country: String?
+    let region: String?
+    let city: String?
 }

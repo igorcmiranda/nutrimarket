@@ -1,6 +1,22 @@
+    import Foundation
+import Combine
+import FirebaseFirestore
+import FirebaseStorage
+import FirebaseAuth
+import CoreLocation
+
+enum FeedFilter: String, CaseIterable, Identifiable {
+    case global = "GLOBAL"
+    case country = "PAÍS"
+    case state = "ESTADO"
+    case city = "CIDADE"
+    var id: String { rawValue }
+}
+
+@MainActor
+class FeedManager: ObservableObject {
     // Filtro de feed: global, país, estado, cidade
-    @MainActor
-    func applyFeedFilter(_ filter: FeedFilter, user: UserProfile?, location: CLLocation?) async {
+    func applyFeedFilter(_ filter: FeedFilter, user: AppUser?, location: CLLocation?) async {
         isLoading = true
         var query: Query = db.collection("posts").order(by: "createdAt", descending: true).limit(to: pageSize)
         switch filter {
@@ -28,53 +44,7 @@
         }
         isLoading = false
     }
-import Foundation
-import Combine
-import FirebaseFirestore
-import FirebaseStorage
-import FirebaseAuth
-import CoreLocation
-
-enum FeedFilter: String, CaseIterable, Identifiable {
-    case global = "GLOBAL"
-    case country = "PAÍS"
-    case state = "ESTADO"
-    case city = "CIDADE"
-    var id: String { rawValue }
-}
-
-@MainActor
-class FeedManager: ObservableObject {
-        // Filtro de feed: global, país, estado, cidade
-        @MainActor
-        func applyFeedFilter(_ filter: FeedFilter, user: UserProfile?, location: CLLocation?) async {
-            isLoading = true
-            var query: Query = db.collection("posts").order(by: "createdAt", descending: true).limit(to: pageSize)
-            switch filter {
-            case .global:
-                // Sem filtro
-                break
-            case .country:
-                if let country = user?.country {
-                    query = query.whereField("country", isEqualTo: country)
-                }
-            case .state:
-                if let region = user?.region {
-                    query = query.whereField("region", isEqualTo: region)
-                }
-            case .city:
-                if let city = user?.city {
-                    query = query.whereField("city", isEqualTo: city)
-                }
-            }
-            do {
-                let snapshot = try await query.getDocuments()
-                await processPosts(from: snapshot.documents, append: false)
-            } catch {
-                posts = []
-            }
-            isLoading = false
-        }
+    
     @Published var posts: [Post] = []
     @Published var isLoading = false
     @Published var isUploading = false

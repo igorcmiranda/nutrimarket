@@ -53,7 +53,7 @@ struct PostCardView: View, Equatable {
         .background(Color(.systemBackground))
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing) : Color.clear, lineWidth: post.isPinned ? 4 : 0)
+                .stroke(post.isPinned ? Color.yellow : Color.clear, lineWidth: post.isPinned ? 4 : 0)
         )
         .clipShape(RoundedRectangle(cornerRadius: 18))
         // Sheets ficam no body, não dentro de sub-views
@@ -121,7 +121,7 @@ struct PostCardView: View, Equatable {
                     HStack(spacing: 4) {
                         Text(post.username.isEmpty ? post.userName : post.username)
                             .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
+                            .foregroundStyle(post.isPinned ? .orange : .primary)
                         if isVerifiedLive{
                             VerifiedBadge(size: 13)
                         }
@@ -364,17 +364,23 @@ struct PostCardView: View, Equatable {
     @ViewBuilder
     var captionRow: some View {
         if !post.caption.isEmpty {
-            Group {
+            HStack(alignment: .top, spacing: 0) {
                 Text(post.username.isEmpty ? post.userName : post.username)
                     .font(.subheadline).fontWeight(.semibold)
-                    .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
-                + Text(" ")
-                + Text(showFullCaption ? post.caption : String(post.caption.prefix(80)))
-                    .font(.subheadline)
-                    .foregroundStyle(post.isPinned ? LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing) : .primary)
-                + (post.caption.count > 80 && !showFullCaption
-                   ? Text("... mais").font(.subheadline).foregroundColor(.secondary)
-                   : Text(""))
+                    .foregroundStyle(post.isPinned ? .orange : .primary)
+                Text(" ")
+                if showFullCaption {
+                    Text(post.caption)
+                        .font(.subheadline)
+                        .foregroundStyle(post.isPinned ? .orange : .primary)
+                } else {
+                    Text(String(post.caption.prefix(80)))
+                        .font(.subheadline)
+                        .foregroundStyle(post.isPinned ? .orange : .primary)
+                    if post.caption.count > 80 {
+                        Text("... mais").font(.subheadline).foregroundColor(.secondary)
+                    }
+                }
             }
             .onTapGesture {
                 if post.caption.count > 80 {

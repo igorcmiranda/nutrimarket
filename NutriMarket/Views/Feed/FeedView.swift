@@ -12,14 +12,6 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 // MARK: - FeedView
 
-enum FeedFilter: String, CaseIterable, Identifiable {
-    case global = "GLOBAL"
-    case country = "PAÍS"
-    case state = "ESTADO"
-    case city = "CIDADE"
-    var id: String { rawValue }
-}
-
 struct FeedView: View {
     @EnvironmentObject var feedManager: FeedManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
@@ -42,50 +34,6 @@ struct FeedView: View {
                 emptyView
             } else {
                 VStack(spacing: 0) {
-                    // Seletor de filtro no topo
-                    HStack {
-                        Button(action: { showFilterMenu.toggle() }) {
-                            HStack(spacing: 6) {
-                                Text("Feed")
-                                    .font(.title2).fontWeight(.bold)
-                                Image(systemName: "chevron.down")
-                                    .font(.subheadline)
-                                Text("^")
-                                    .font(.title3).fontWeight(.bold)
-                                Text(selectedFilter.rawValue)
-                                    .font(.headline).fontWeight(.semibold)
-                                    .foregroundColor(.accentColor)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .popover(isPresented: $showFilterMenu, arrowEdge: .bottom) {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ForEach(FeedFilter.allCases) { filter in
-                                    Button(action: {
-                                        selectedFilter = filter
-                                        showFilterMenu = false
-                                        Task { await feedManager.applyFeedFilter(filter, user: authManager.currentUser, location: locationManager.lastLocation) }
-                                    }) {
-                                        HStack {
-                                            Text(filter.rawValue)
-                                                .font(.headline)
-                                                .foregroundColor(selectedFilter == filter ? .accentColor : .primary)
-                                            if selectedFilter == filter {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                        .padding(.vertical, 8)
-                                    }
-                                }
-                            }
-                            .padding()
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(feedManager.posts) { post in
@@ -164,9 +112,42 @@ struct FeedView: View {
                 uploadingOverlay
             }
         }
-        .navigationTitle("Feed")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Button(action: { showFilterMenu.toggle() }) {
+                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                        Text("Feed")
+                            .font(.title2).fontWeight(.bold)
+                        Text(selectedFilter.rawValue)
+                            .font(.caption).fontWeight(.bold)
+                            .foregroundColor(.accentColor)
+                    }
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showFilterMenu, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(FeedFilter.allCases) { filter in
+                            Button(action: {
+                                selectedFilter = filter
+                                showFilterMenu = false
+                                Task { await feedManager.applyFeedFilter(filter, user: authManager.currentUser, location: locationManager.lastLocation) }
+                            }) {
+                                HStack {
+                                    Text(filter.rawValue)
+                                        .font(.headline)
+                                        .foregroundColor(selectedFilter == filter ? .accentColor : .primary)
+                                    if selectedFilter == filter {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
                     MessagesView()
