@@ -2,22 +2,26 @@ import Foundation
 import FirebaseFirestore
 import SwiftUI
 
+// MARK: - Challenge Model (updated with name + inviteLink)
+
 struct Challenge: Identifiable, Codable {
     var id: String
+    var name: String                  // ← NEW: nome do desafio
     var challengerID: String
     var challengerName: String
     var challengerAvatarURL: String
-    var challengedID: String        // vazio em grupo
-    var challengedName: String      // vazio em grupo
-    var challengedAvatarURL: String // vazio em grupo
+    var challengedID: String
+    var challengedName: String
+    var challengedAvatarURL: String
     var status: ChallengeStatus
     var startDate: Date
     var endDate: Date
     var createdAt: Date
     var isGroup: Bool = false
     var maxParticipants: Int = 2
-    var invitedIDs: [String] = []   // todos convidados
-    var acceptedIDs: [String] = []  // quem aceitou
+    var invitedIDs: [String] = []
+    var acceptedIDs: [String] = []
+    var inviteLink: String? = nil     // ← NEW: deep link para compartilhar
 
     enum ChallengeStatus: String, Codable {
         case pending   = "pending"
@@ -26,6 +30,8 @@ struct Challenge: Identifiable, Codable {
         case declined  = "declined"
     }
 }
+
+// MARK: - Unchanged models
 
 struct ChallengeParticipant: Identifiable, Codable {
     var id: String

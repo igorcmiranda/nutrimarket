@@ -223,6 +223,168 @@ exports.handleVerification = onRequest(
   }
 )
 
+exports.joinChallenge = onRequest(
+  { invoker: 'public' },
+  async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*')
+
+    const challengeID = req.query.id
+
+    if (!challengeID) {
+      res.status(400).send('<h1>Link inválido</h1>')
+      return
+    }
+
+    // Verifica se o desafio existe
+    let challengeName = 'um desafio'
+    try {
+      const doc = await admin.firestore()
+        .collection('challenges')
+        .doc(challengeID)
+        .get()
+
+      if (doc.exists) {
+        challengeName = doc.data()?.name || 'um desafio'
+      }
+    } catch (e) {
+      // Continua mesmo se não conseguir buscar o nome
+    }
+
+    // URL scheme que abre o app diretamente (se instalado)
+    const appSchemeURL = `nutrimarket://challenge?id=${challengeID}`
+
+    // Link da App Store (substitua pelo seu ID real)
+    // Encontre em: App Store Connect → Seu App → URL da App Store
+    const appStoreURL = 'https://apps.apple.com/app/idSEU_APP_ID'
+    // Exemplo real: 'https://apps.apple.com/br/app/vyro/id1234567890'
+
+    // HTML com redirect inteligente
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vyro — Aceitar desafio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0D0D2B 0%, #1a1a3e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 380px;
+      width: 100%;
+    }
+    .trophy { font-size: 64px; margin-bottom: 16px; }
+    h1 {
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .challenge-name {
+      color: #FFD700;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    p {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity 0.2s;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-primary {
+      background: linear-gradient(90deg, #4A6FE8, #7B5FDC);
+      color: #fff;
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.8);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .loader {
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="trophy">🏆</div>
+    <h1>Você foi desafiado!</h1>
+    <div class="challenge-name">"${challengeName}"</div>
+    <p>Alguém te convidou para participar de um desafio no Vyro. Aceite e mostre do que você é capaz!</p>
+
+    <a class="btn btn-primary" href="${appSchemeURL}" id="openApp">
+      Abrir no Vyro
+    </a>
+    <a class="btn btn-secondary" href="${appStoreURL}" id="getApp">
+      Baixar Vyro gratuitamente
+    </a>
+
+    <p class="loader" id="msg">Tentando abrir o app...</p>
+  </div>
+
+  <script>
+    // Tenta abrir o app via URL scheme
+    const appLink = document.getElementById('openApp')
+    const msg = document.getElementById('msg')
+
+    // Ao clicar em "Abrir no Vyro"
+    appLink.addEventListener('click', function(e) {
+      e.preventDefault()
+
+      const start = Date.now()
+      window.location.href = '${appSchemeURL}'
+
+      // Se após 2.5s ainda estiver aqui, o app provavelmente não está instalado
+      setTimeout(function() {
+        if (Date.now() - start < 3000) {
+          msg.textContent = 'App não encontrado. Baixe o Vyro na App Store.'
+          document.getElementById('getApp').style.display = 'block'
+        }
+      }, 2500)
+    })
+
+    // Auto-tenta abrir no load (iOS às vezes abre automaticamente)
+    setTimeout(function() {
+      window.location.href = '${appSchemeURL}'
+    }, 500)
+  </script>
+</body>
+</html>`
+
+    res.status(200).send(html)
+  }
+)
+
+
 exports.sendVerificationRequest = onRequest(
   { invoker: 'public' },
   async (req, res) => {
