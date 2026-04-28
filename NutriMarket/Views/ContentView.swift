@@ -149,6 +149,9 @@ struct ContentView: View {
                         .environmentObject(subscriptionManager)
                         .environmentObject(authManager)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .openChallengeInvite)) { _ in
+                    selectedTab = 2
+                }
             }
         }
     }

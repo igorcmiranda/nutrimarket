@@ -298,7 +298,6 @@ struct NewChallengeView: View {
                 senderAvatar: user.avatarURL
             )
         } else {
-            // Sem usuário selecionado → cria como grupo aberto (só link)
             createdChallengeID = await challengeManager.createGroupChallenge(
                 name: trimmedName,
                 targetUserIDs: [],
@@ -309,9 +308,8 @@ struct NewChallengeView: View {
         }
 
         isSending = false
-        if createdChallengeID != nil {
-            showSuccess = true
-        }
+        // Fecha a sheet direto, sem alert
+        dismiss()
     }
 
     /// Cria o desafio e abre direto o share sheet (sem alert intermediário)

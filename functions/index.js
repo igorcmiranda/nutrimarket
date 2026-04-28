@@ -4,11 +4,16 @@ const admin = require('firebase-admin')
 const serviceAccount = require('./serviceAccountKey.json')
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: 'https://nutrimarket-default-rtdb.firebaseio.com',
+  storageBucket: 'nutrimarket.firebasestorage.app'
 })
 
+// ─────────────────────────────────────────────────────────────
+// sendPushNotification — southamerica-east1
+// ─────────────────────────────────────────────────────────────
 exports.sendPushNotification = onRequest(
-  { invoker: 'public' },
+  { invoker: 'public', region: 'southamerica-east1' },
   async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*')
     if (req.method === 'OPTIONS') {
@@ -50,8 +55,14 @@ exports.sendPushNotification = onRequest(
   }
 )
 
+// ─────────────────────────────────────────────────────────────
+// onNotificationCreated — southamerica-east1
+// ─────────────────────────────────────────────────────────────
 exports.onNotificationCreated = onDocumentCreated(
-  'notifications/{userId}/items/{itemId}',
+  {
+    document: 'notifications/{userId}/items/{itemId}',
+    region: 'southamerica-east1'
+  },
   async (event) => {
     const userId = event.params.userId
     const notification = event.data.data()
@@ -112,6 +123,9 @@ exports.onNotificationCreated = onDocumentCreated(
   }
 )
 
+// ─────────────────────────────────────────────────────────────
+// handleVerification — us-central1 (mantém região original)
+// ─────────────────────────────────────────────────────────────
 exports.handleVerification = onRequest(
   { invoker: 'public' },
   async (req, res) => {
@@ -124,7 +138,6 @@ exports.handleVerification = onRequest(
 
     try {
       if (action === 'accept') {
-        // Verifica o usuário
         await admin.firestore().collection('users').doc(uid).update({
           isVerified: true
         })
@@ -134,7 +147,6 @@ exports.handleVerification = onRequest(
           resolvedAt: admin.firestore.Timestamp.now()
         })
 
-        // Notifica o usuário
         const userDoc = await admin.firestore().collection('users').doc(uid).get()
         const fcmToken = userDoc.data()?.fcmToken
         const userName = userDoc.data()?.name || 'Usuário'
@@ -186,7 +198,6 @@ exports.handleVerification = onRequest(
           resolvedAt: admin.firestore.Timestamp.now()
         })
 
-        // Salva data da recusa para cooldown de 6 meses
         await admin.firestore().collection('users').doc(uid).update({
           verificationDeniedAt: admin.firestore.Timestamp.now()
         })
@@ -223,42 +234,26 @@ exports.handleVerification = onRequest(
   }
 )
 
+// ─────────────────────────────────────────────────────────────
+// joinChallenge — southamerica-east1
+// Lê o nome do parâmetro ?n= da URL (sem precisar ler Firestore)
+// ─────────────────────────────────────────────────────────────
 exports.joinChallenge = onRequest(
-  { invoker: 'public' },
+  { invoker: 'public', region: 'southamerica-east1' },
   async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*')
 
     const challengeID = req.query.id
+    const challengeName = req.query.n ? decodeURIComponent(req.query.n) : 'um desafio'
 
     if (!challengeID) {
       res.status(400).send('<h1>Link inválido</h1>')
       return
     }
 
-    // Verifica se o desafio existe
-    let challengeName = 'um desafio'
-    try {
-      const doc = await admin.firestore()
-        .collection('challenges')
-        .doc(challengeID)
-        .get()
-
-      if (doc.exists) {
-        challengeName = doc.data()?.name || 'um desafio'
-      }
-    } catch (e) {
-      // Continua mesmo se não conseguir buscar o nome
-    }
-
-    // URL scheme que abre o app diretamente (se instalado)
     const appSchemeURL = `nutrimarket://challenge?id=${challengeID}`
-
-    // Link da App Store (substitua pelo seu ID real)
-    // Encontre em: App Store Connect → Seu App → URL da App Store
     const appStoreURL = 'https://apps.apple.com/app/idSEU_APP_ID'
-    // Exemplo real: 'https://apps.apple.com/br/app/vyro/id1234567890'
 
-    // HTML com redirect inteligente
     const html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -288,50 +283,22 @@ exports.joinChallenge = onRequest(
       width: 100%;
     }
     .trophy { font-size: 64px; margin-bottom: 16px; }
-    h1 {
-      color: #fff;
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .challenge-name {
-      color: #FFD700;
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    p {
-      color: rgba(255,255,255,0.6);
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 28px;
-    }
+    h1 { color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .challenge-name { color: #FFD700; font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+    p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.5; margin-bottom: 28px; }
     .btn {
-      display: block;
-      width: 100%;
-      padding: 16px;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      margin-bottom: 12px;
-      transition: opacity 0.2s;
+      display: block; width: 100%; padding: 16px;
+      border-radius: 14px; font-size: 16px; font-weight: 600;
+      text-decoration: none; margin-bottom: 12px; transition: opacity 0.2s;
     }
     .btn:active { opacity: 0.8; }
-    .btn-primary {
-      background: linear-gradient(90deg, #4A6FE8, #7B5FDC);
-      color: #fff;
-    }
+    .btn-primary { background: linear-gradient(90deg, #4A6FE8, #7B5FDC); color: #fff; }
     .btn-secondary {
       background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.8);
       border: 1px solid rgba(255,255,255,0.15);
     }
-    .loader {
-      color: rgba(255,255,255,0.4);
-      font-size: 13px;
-      margin-top: 16px;
-    }
+    .loader { color: rgba(255,255,255,0.4); font-size: 13px; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -340,39 +307,25 @@ exports.joinChallenge = onRequest(
     <h1>Você foi desafiado!</h1>
     <div class="challenge-name">"${challengeName}"</div>
     <p>Alguém te convidou para participar de um desafio no Vyro. Aceite e mostre do que você é capaz!</p>
-
-    <a class="btn btn-primary" href="${appSchemeURL}" id="openApp">
-      Abrir no Vyro
-    </a>
-    <a class="btn btn-secondary" href="${appStoreURL}" id="getApp">
-      Baixar Vyro gratuitamente
-    </a>
-
+    <a class="btn btn-primary" href="${appSchemeURL}" id="openApp">Abrir no Vyro</a>
+    <a class="btn btn-secondary" href="${appStoreURL}" id="getApp">Baixar Vyro gratuitamente</a>
     <p class="loader" id="msg">Tentando abrir o app...</p>
   </div>
-
   <script>
-    // Tenta abrir o app via URL scheme
     const appLink = document.getElementById('openApp')
     const msg = document.getElementById('msg')
 
-    // Ao clicar em "Abrir no Vyro"
     appLink.addEventListener('click', function(e) {
       e.preventDefault()
-
       const start = Date.now()
       window.location.href = '${appSchemeURL}'
-
-      // Se após 2.5s ainda estiver aqui, o app provavelmente não está instalado
       setTimeout(function() {
         if (Date.now() - start < 3000) {
           msg.textContent = 'App não encontrado. Baixe o Vyro na App Store.'
-          document.getElementById('getApp').style.display = 'block'
         }
       }, 2500)
     })
 
-    // Auto-tenta abrir no load (iOS às vezes abre automaticamente)
     setTimeout(function() {
       window.location.href = '${appSchemeURL}'
     }, 500)
@@ -384,7 +337,9 @@ exports.joinChallenge = onRequest(
   }
 )
 
-
+// ─────────────────────────────────────────────────────────────
+// sendVerificationRequest — us-central1 (mantém região original)
+// ─────────────────────────────────────────────────────────────
 exports.sendVerificationRequest = onRequest(
   { invoker: 'public' },
   async (req, res) => {

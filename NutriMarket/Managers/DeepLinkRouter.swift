@@ -32,12 +32,15 @@ final class DeepLinkRouter {
 
     /// Gera o link de convite para um desafio
     /// Formato: https://us-central1-nutrimarket.cloudfunctions.net/joinChallenge?id=<id>
-    static func inviteURL(for challengeID: String) -> URL? {
+    static func inviteURL(for challengeID: String, name: String = "") -> URL? {
         var components = URLComponents()
         components.scheme = "https"
-        components.host = "us-central1-nutrimarket.cloudfunctions.net"
-        components.path = "/joinChallenge"
-        components.queryItems = [URLQueryItem(name: "id", value: challengeID)]
+        components.host = "vyroapp.com.br"
+        components.path = "/challenge"
+        components.queryItems = [
+            URLQueryItem(name: "id", value: challengeID),
+            URLQueryItem(name: "n", value: name)  // ← nome como parâmetro
+        ]
         return components.url
     }
 
@@ -87,6 +90,8 @@ extension ChallengeManager {
               let cid = DeepLinkRouter.pendingChallengeID else { return }
 
         DeepLinkRouter.pendingChallengeID = nil
+        
+        let db = Firestore.firestore()
 
         do {
             let doc = try await db.collection("challenges").document(cid).getDocument()

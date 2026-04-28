@@ -60,6 +60,8 @@ struct NutriMarketApp: App {
                 }
                 .onOpenURL { url in
                     Task { await glasses.handleURL(url) }
+                    DeepLinkRouter.handle(url: url)  // ← falta isso
+
                 }
                 .onAppear {
                     Task {

@@ -101,6 +101,7 @@ struct ChallengeView: View {
         .onAppear {
             Task {
                 challengeManager.startChallengesListener()
+                await challengeManager.processPendingDeepLink()
                 await healthKit.requestAuthorization()
                 await trophyManager.loadTrophies()
                 await trophyManager.checkExpiredChallenges()
@@ -124,10 +125,6 @@ struct ChallengeView: View {
             }
         }
     }
-
-    // MARK: - Compartilhar no feed
-
-    
 
     // MARK: - Tab Progresso
 
@@ -368,7 +365,7 @@ struct ChallengeView: View {
             }
         }
     }
-}
+} // ← fecha ChallengeView
 
 // MARK: - Sub-components
 
@@ -401,6 +398,8 @@ struct PendingChallengeCard: View {
             HStack(spacing: 10) {
                 AvatarView(url: challenge.challengerAvatarURL, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
+                    Text(challenge.name)
+                        .font(.headline).fontWeight(.bold)
                     Text(challenge.isGroup
                          ? "\(challenge.challengerName) te convidou para uma competição!"
                          : "\(challenge.challengerName) te desafiou!")
@@ -450,6 +449,8 @@ struct ActiveChallengeCard: View {
     @EnvironmentObject var authManager: AuthManager
     @State private var participants: [(id: String, name: String, avatar: String, points: Double)] = []
     @State private var myPoints: Double = 0
+    @State private var showShareSheet = false
+    @State private var shareMessage = ""
 
     var myProgress: Double {
         PointsCalculator.calculate(caloriesBurned: myCaloriesBurned, dailyGoal: myDailyGoal) / 100
@@ -468,10 +469,14 @@ struct ActiveChallengeCard: View {
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Label(challenge.isGroup ? "Competição em grupo" : "Desafio ativo",
-                      systemImage: challenge.isGroup ? "person.3.fill" : "flame.fill")
-                    .font(.caption).fontWeight(.medium)
-                    .foregroundStyle(challenge.isGroup ? .purple : .orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(challenge.name)
+                        .font(.subheadline).fontWeight(.bold)
+                    Label(challenge.isGroup ? "Competição em grupo" : "Desafio ativo",
+                          systemImage: challenge.isGroup ? "person.3.fill" : "flame.fill")
+                        .font(.caption).fontWeight(.medium)
+                        .foregroundStyle(challenge.isGroup ? .purple : .orange)
+                }
                 Spacer()
                 Text("Termina em \(daysRemaining) dias")
                     .font(.caption).foregroundStyle(.secondary)
@@ -481,6 +486,24 @@ struct ActiveChallengeCard: View {
                 groupScoreboard
             } else {
                 duoScoreboard
+            }
+
+            Button {
+                let link = challenge.inviteLink ?? DeepLinkRouter.inviteURL(for: challenge.id)?.absoluteString ?? ""
+                shareMessage = "💪 Me junte no desafio \"\(challenge.name)\" no Vyro!\n\(link)"
+                showShareSheet = true
+            } label: {
+                Label("Compartilhar link do desafio", systemImage: "link")
+                    .font(.caption).fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: [shareMessage])
             }
         }
         .padding()
@@ -563,7 +586,6 @@ struct ActiveChallengeCard: View {
     func setupListeners() {
         let db = Firestore.firestore()
 
-        // Fetch imediato
         Task {
             let uid = self.uid
             if let doc = try? await db.collection("challenges").document(challenge.id)
@@ -590,7 +612,6 @@ struct ActiveChallengeCard: View {
             }
         }
 
-        // Listener em tempo real
         db.collection("challenges").document(challenge.id)
             .collection("participants")
             .addSnapshotListener { snapshot, _ in
@@ -608,7 +629,7 @@ struct ActiveChallengeCard: View {
                 }
             }
     }
-}
+} // ← fecha ActiveChallengeCard
 
 struct LeaderboardRow: View {
     let entry: LeaderboardEntry
@@ -645,4 +666,4 @@ struct LeaderboardRow: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
     }
-}
+} // ← fecha LeaderboardRow

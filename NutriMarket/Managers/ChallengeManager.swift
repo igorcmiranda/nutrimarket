@@ -99,19 +99,22 @@ class ChallengeManager: ObservableObject {
     // MARK: - Criar desafio 1x1
 
     func createChallenge(
+        name: String,
         targetUserID: String,
         targetName: String,
         targetAvatar: String,
         senderName: String,
         senderAvatar: String
-    ) async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+    ) async -> String?{
+        guard let uid = Auth.auth().currentUser?.uid else { return nil}
         let challengeID = UUID().uuidString
+        let inviteURL = DeepLinkRouter.inviteURL(for: challengeID, name: name)?.absoluteString ?? ""
         let now = Date()
         let endDate = now.addingTimeInterval(30 * 24 * 60 * 60)
 
         let challenge = Challenge(
             id: challengeID,
+            name: name,
             challengerID: uid,
             challengerName: senderName,
             challengerAvatarURL: senderAvatar,
@@ -125,11 +128,13 @@ class ChallengeManager: ObservableObject {
             isGroup: false,
             maxParticipants: 2,
             invitedIDs: [targetUserID],
-            acceptedIDs: [uid]
+            acceptedIDs: [uid],
+            inviteLink: inviteURL
         )
 
         do {
             try db.collection("challenges").document(challengeID).setData(from: challenge)
+            
             try await db.collection("challenges").document(challengeID)
                 .collection("participants").document(uid).setData([
                     "userName": senderName,
@@ -148,26 +153,32 @@ class ChallengeManager: ObservableObject {
                 challengeID: challengeID,
                 message: "\(senderName) te desafiou para um duelo de 1 mês! 🏆"
             )
+            
+            return challengeID
         } catch {
             // // print("Erro ao criar desafio: \(error)")
+            return nil
         }
     }
 
     // MARK: - Criar desafio em grupo
 
     func createGroupChallenge(
+        name: String,
         targetUserIDs: [String],
         targetUsers: [(id: String, name: String, avatar: String)],
         senderName: String,
         senderAvatar: String
-    ) async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+    ) async -> String?{
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
         let challengeID = UUID().uuidString
+        let inviteURL = DeepLinkRouter.inviteURL(for: challengeID, name: name)?.absoluteString ?? ""
         let now = Date()
         let endDate = now.addingTimeInterval(30 * 24 * 60 * 60)
 
         let challenge = Challenge(
             id: challengeID,
+            name: name,
             challengerID: uid,
             challengerName: senderName,
             challengerAvatarURL: senderAvatar,
@@ -181,11 +192,13 @@ class ChallengeManager: ObservableObject {
             isGroup: true,
             maxParticipants: 20,
             invitedIDs: targetUserIDs,
-            acceptedIDs: [uid]
+            acceptedIDs: [uid],
+            inviteLink: inviteURL
         )
 
         do {
             try db.collection("challenges").document(challengeID).setData(from: challenge)
+            
 
             // Criador já entra como participante
             try await db.collection("challenges").document(challengeID)
@@ -209,8 +222,11 @@ class ChallengeManager: ObservableObject {
                     message: "\(senderName) te convidou para uma competição em grupo! 🏆"
                 )
             }
+            return challengeID
+
         } catch {
             // // print("Erro ao criar desafio em grupo: \(error)")
+            return nil
         }
     }
 
